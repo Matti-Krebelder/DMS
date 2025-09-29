@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-8">
+        <i class="fas fa-edit mr-3"></i>Gerät bearbeiten
+    </h1>
+    <form method="POST" class="bg-gray-800 p-6 rounded-lg space-y-4" id="editDeviceForm">
+        <input type="text" name="name" value="{{ device[1] }}"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none"
+               data-autofocus onkeypress="submitFormOnEnter(event, 'editDeviceForm')" >
+        <input type="text" name="barcode" value="{{ device[2] }}"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none"
+               onkeypress="submitFormOnEnter(event, 'editDeviceForm')" >
+        <input type="text" name="lagerplatz" value="{{ device[3] }}"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none"
+               onkeypress="submitFormOnEnter(event, 'editDeviceForm')" >
+        <input type="text" name="seriennummer" value="{{ device[6] or '' }}" placeholder="Seriennummer"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="text" name="modell" value="{{ device[7] or '' }}" placeholder="Modell"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="text" name="instrumentenart" value="{{ device[8] or '' }}" placeholder="Instrumentenart" list="instrumentenarten"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <datalist id="instrumentenarten">
+            {% for art in instrumentenarten %}
+            <option value="{{ art }}" {% if art == device[8] %}selected{% endif %}>{{ art }}</option>
+            {% endfor %}
+        </datalist>
+        <input type="text" name="inventarnummer" value="{{ device[9] or '' }}" placeholder="Inventar-Nummer (extern)"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="date" name="kaufdatum" value="{{ device[10] or '' }}" placeholder="Kaufdatum"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="number" name="preis" value="{{ device[11] or '' }}" placeholder="Preis (€)" step="0.01" min="0"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <textarea name="beschreibung" placeholder="Beschreibung"
+                  class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none h-24"
+                  onkeypress="submitFormOnEnter(event, 'editDeviceForm')">{{ device[5] or '' }}</textarea>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded font-semibold transition">
+            <i class="fas fa-save mr-2"></i>Speichern
+        </button>
+    </form>
+    <a href="/devices" class="block text-center mt-4 text-gray-400 hover:text-white">
+        <i class="fas fa-arrow-left mr-2"></i>Zurück
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-100 mb-2">
+            <i class="fas fa-clipboard-list mr-3 text-green-500"></i>Inventar Übersicht
+        </h1>
+        <p class="text-gray-400">Vollständige Übersicht aller Geräte und deren Status</p>
+    </div>
+    <a href="/lager/{{ session['current_lager'] }}" 
+       class="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors border border-gray-700">
+        <i class="fas fa-arrow-left text-gray-400"></i>
+        <span class="text-gray-300">Zurück</span>
+    </a>
+</div>
+
+<div class="glass-effect rounded-2xl p-6 mb-8 border border-gray-800">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold text-gray-100 flex items-center">
+            <i class="fas fa-filter mr-3 text-green-500"></i>Filter & Sortierung
+        </h2>
+        <button onclick="resetFilters()" 
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-sm font-medium transition-colors">
+            <i class="fas fa-undo mr-2"></i>Zurücksetzen
+        </button>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-search mr-1 text-blue-400"></i>Suche
+            </label>
+            <input type="text" id="search-input" value="{{ search }}" placeholder="Geräte suchen..."
+                   class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-info-circle mr-1 text-green-400"></i>Status
+            </label>
+            <select id="status-select" class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+                <option value="">Alle Status</option>
+                <option value="verfügbar" {% if "verfügbar" in status_filters %}selected{% endif %}>Verfügbar</option>
+                <option value="ausgeliehen" {% if "ausgeliehen" in status_filters %}selected{% endif %}>Ausgeliehen</option>
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-tag mr-1 text-purple-400"></i>Instrument
+            </label>
+            <select id="art-select" class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+                <option value="">Alle Instrumente</option>
+                {% for art in instrumentenarten %}
+                <option value="{{ art }}" {% if art in art_filters %}selected{% endif %}>{{ art }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-graduation-cap mr-1 text-orange-400"></i>Klasse
+            </label>
+            <select id="klasse-select" class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+                <option value="">Alle Klassen</option>
+                {% for klasse in klassen %}
+                <option value="{{ klasse }}" {% if klasse in klasse_filters %}selected{% endif %}>{{ klasse }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-sort mr-1 text-yellow-400"></i>Sortieren
+            </label>
+            <select id="sort-select" class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                <option value="model" {% if sort_by == 'model' %}selected{% endif %}>Modell</option>
+                <option value="instrumentenart" {% if sort_by == 'instrumentenart' %}selected{% endif %}>Instrumentenart</option>
+                <option value="lagerplatz" {% if sort_by == 'lagerplatz' %}selected{% endif %}>Lagerplatz</option>
+                <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="fas fa-layer-group mr-1 text-pink-400"></i>Gruppierung
+            </label>
+            <select id="group-select" class="w-full p-3 bg-gray-800 rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100">
+                <option value="none" {% if group_by == 'none' %}selected{% endif %}>Keine</option>
+                <option value="model" {% if group_by == 'model' %}selected{% endif %}>Nach Modell</option>
+                <option value="instrument" {% if group_by == 'instrument' %}selected{% endif %}>Nach Instrument</option>
+                <option value="status" {% if group_by == 'status' %}selected{% endif %}>Nach Status</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <a href="/export?format=csv&search={{ search }}&status={{ ','.join(status_filters) }}&art={{ ','.join(art_filters) }}&klasse={{ ','.join(klasse_filters) }}" 
+       class="group relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 p-4 rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover">
+        <div class="absolute inset-0 bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <i class="fas fa-file-csv mr-2"></i>Export CSV
+    </a>
+    
+    <a href="/export?format=word&search={{ search }}&status={{ ','.join(status_filters) }}&art={{ ','.join(art_filters) }}&klasse={{ ','.join(klasse_filters) }}" 
+       class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 p-4 rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <i class="fas fa-file-word mr-2"></i>Export Word
+    </a>
+    
+    <a href="/export?format=word_labels&search={{ search }}&status={{ ','.join(status_filters) }}&art={{ ','.join(art_filters) }}&klasse={{ ','.join(klasse_filters) }}" 
+       class="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 p-4 rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover">
+        <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <i class="fas fa-tags mr-2"></i>Word Etiketten
+    </a>
+</div>
+
+<div id="device-list">
+    {% if grouped_devices and group_by != 'none' %}
+        {% for group_name, group_devices in grouped_devices.items() %}
+        <div class="group-card mb-6 glass-effect rounded-2xl border border-gray-800 overflow-hidden">
+            <div class="group-header p-4 cursor-pointer" onclick="toggleGroup('{{ loop.index }}')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i id="group-icon-{{ loop.index }}" class="fas fa-chevron-down text-green-400 transition-transform"></i>
+                        <h3 class="text-lg font-semibold text-gray-100">{{ group_name }}</h3>
+                        <span class="px-3 py-1 bg-green-600 text-green-100 rounded-full text-sm font-medium">({{ group_devices|length }})</span>
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        {% set available_count = group_devices | selectattr('4', 'equalto', 'verfügbar') | list | length %}
+                        {% set borrowed_count = group_devices | length - available_count %}
+                        <span class="text-green-400">{{ available_count }} verfügbar</span>
+                        {% if borrowed_count > 0 %}
+                        <span class="ml-2 text-red-400">{{ borrowed_count }} ausgeliehen</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div id="group-content-{{ loop.index }}" class="border-t border-gray-800">
+                {% for device in group_devices %}
+                <div class="device-card p-4 border-b border-gray-800 last:border-b-0 hover:bg-gray-800/50 transition-colors">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h4 class="font-semibold text-gray-100">{{ device[1] }}</h4>
+                                <span class="px-2 py-1 rounded-lg text-xs font-medium
+                                    {% if device[4] == 'verfügbar' %}bg-green-600/20 text-green-400 border border-green-600/30{% else %}bg-red-600/20 text-red-400 border border-red-600/30{% endif %}">
+                                    {{ device[4] }}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-400">
+                                <div><i class="fas fa-barcode mr-2 text-blue-400"></i>{{ device[2] }}</div>
+                                <div><i class="fas fa-map-marker-alt mr-2 text-green-400"></i>{{ device[3] }}</div>
+                                <div><i class="fas fa-cog mr-2 text-purple-400"></i>{{ device[7] or 'N/A' }}</div>
+                                <div><i class="fas fa-tag mr-2 text-orange-400"></i>{{ device[8] or 'N/A' }}</div>
+                            </div>
+                            {% if device[6] or device[9] or device[10] %}
+                            <div class="mt-2 text-xs text-gray-500 space-x-4">
+                                {% if device[6] %}<span>SN: {{ device[6] }}</span>{% endif %}
+                                {% if device[9] %}<span>Inv: {{ device[9] }}</span>{% endif %}
+                                {% if device[10] %}<span>{{ device[10] }}</span>{% endif %}
+                            </div>
+                            {% endif %}
+                            {% if device[12] %}
+                            <div class="mt-2 p-2 bg-yellow-900/30 rounded-lg border border-yellow-600/30">
+                                <p class="text-sm text-yellow-300"><strong>Ausgeliehen an:</strong> {{ device[12] }}</p>
+                                {% if device[15] %}<p class="text-xs text-yellow-400"><strong>E-Mail:</strong> {{ device[15] }}</p>{% endif %}
+                                {% if device[16] %}<p class="text-xs text-yellow-400"><strong>Klasse:</strong> {{ device[16] }}</p>{% endif %}
+                                {% if device[14] %}<p class="text-xs text-yellow-400"><strong>Datum:</strong> {{ device[14] }}</p>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        {% for device in devices %}
+        <div class="device-card glass-effect rounded-2xl p-4 mb-4 border border-gray-800 hover:border-gray-700 transition-colors">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <h4 class="font-semibold text-gray-100">{{ device[1] }}</h4>
+                        <span class="px-2 py-1 rounded-lg text-xs font-medium
+                            {% if device[4] == 'verfügbar' %}bg-green-600/20 text-green-400 border border-green-600/30{% else %}bg-red-600/20 text-red-400 border border-red-600/30{% endif %}">
+                            {{ device[4] }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-400">
+                        <div><i class="fas fa-barcode mr-2 text-blue-400"></i>{{ device[2] }}</div>
+                        <div><i class="fas fa-map-marker-alt mr-2 text-green-400"></i>{{ device[3] }}</div>
+                        <div><i class="fas fa-cog mr-2 text-purple-400"></i>{{ device[7] or 'N/A' }}</div>
+                        <div><i class="fas fa-tag mr-2 text-orange-400"></i>{{ device[8] or 'N/A' }}</div>
+                    </div>
+                    {% if device[6] or device[9] or device[10] %}
+                    <div class="mt-2 text-xs text-gray-500 space-x-4">
+                        {% if device[6] %}<span>SN: {{ device[6] }}</span>{% endif %}
+                        {% if device[9] %}<span>Inv: {{ device[9] }}</span>{% endif %}
+                        {% if device[10] %}<span>{{ device[10] }}</span>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% if device[12] %}
+                    <div class="mt-2 p-2 bg-yellow-900/30 rounded-lg border border-yellow-600/30">
+                        <p class="text-sm text-yellow-300"><strong>Ausgeliehen an:</strong> {{ device[12] }}</p>
+                        {% if device[15] %}<p class="text-xs text-yellow-400"><strong>E-Mail:</strong> {{ device[15] }}</p>{% endif %}
+                        {% if device[16] %}<p class="text-xs text-yellow-400"><strong>Klasse:</strong> {{ device[16] }}</p>{% endif %}
+                        {% if device[14] %}<p class="text-xs text-yellow-400"><strong>Datum:</strong> {{ device[14] }}</p>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

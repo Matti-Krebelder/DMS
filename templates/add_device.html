@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-8">
+        <i class="fas fa-plus mr-3"></i>Gerät hinzufügen
+    </h1>
+    
+    <form method="POST" id="addDeviceForm" class="bg-gray-800 p-6 rounded-lg space-y-4">
+        <input type="text" name="name" placeholder="Gerätename (optional)"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none"
+               data-autofocus onkeypress="submitFormOnEnter(event, 'addDeviceForm')">
+        
+        <input type="text" name="lagerplatz" placeholder="Lagerplatz (z.B. A1)"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none"
+               onkeypress="submitFormOnEnter(event, 'addDeviceForm')">
+        
+        <input type="text" name="seriennummer" placeholder="Seriennummer"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        
+        <input type="text" name="modell" placeholder="Modell"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        
+        <input type="text" name="instrumentenart" placeholder="Instrument" list="instrumentenarten"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <datalist id="instrumentenarten">
+            {% for art in instrumentenarten %}
+            <option value="{{ art }}">{{ art }}</option>
+            {% endfor %}
+        </datalist>
+        
+        <input type="text" name="inventarnummer" placeholder="Inventar-Nummer (extern)"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        
+        <input type="date" name="kaufdatum" placeholder="Kaufdatum"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        
+        <input type="number" name="preis" placeholder="Preis (€)" step="0.01" min="0"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        
+        <textarea name="beschreibung" placeholder="Beschreibung (optional)"
+                  class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none h-24"></textarea>
+        
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 p-3 rounded font-semibold transition">
+            <i class="fas fa-save mr-2"></i>Speichern
+        </button>
+    </form>
+    
+    <a href="/devices" class="block text-center mt-4 text-gray-400 hover:text-white">
+        <i class="fas fa-arrow-left mr-2"></i>Zurück
+    </a>
+</div>
+{% endblock %}

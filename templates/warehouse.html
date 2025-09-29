@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="text-4xl font-bold mb-12">
+        <i class="fas fa-warehouse mr-3"></i>Lager
+    </h1>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <a href="/devices" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-box text-4xl text-blue-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-lg font-semibold">Geräte</h2>
+        </a>
+        <a href="/borrow" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-hand-holding text-4xl text-green-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-lg font-semibold">Ausleihen</h2>
+        </a>
+        <a href="/return" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-undo text-4xl text-yellow-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-lg font-semibold">Zurückgeben</h2>
+        </a>
+        <a href="/inventory" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-list text-4xl text-purple-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-lg font-semibold">Inventar</h2>
+        </a>
+    </div>
+    <a href="/dashboard" class="inline-block mt-12 text-gray-400 hover:text-white">
+        <i class="fas fa-arrow-left mr-2"></i>Zurück zum Dashboard
+    </a>
+</div>
+{% endblock %}

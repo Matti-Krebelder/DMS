@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="text-4xl font-bold mb-2">Hallo {{ session.user_name }}</h1>
+    <p class="text-gray-400 mb-12">ID: {{ session.user_id }}</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+        <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-plus text-4xl text-green-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-xl font-semibold">Neues Lager</h2>
+        </a>
+        <a href="/manage_lager" class="bg-gray-800 hover:bg-gray-700 p-8 rounded-lg transition group">
+            <i class="fas fa-cog text-4xl text-blue-500 mb-4 group-hover:scale-110 transition"></i>
+            <h2 class="text-xl font-semibold">Lager verwalten</h2>
+        </a>
+    </div>
+    <div class="mt-12">
+        <h3 class="text-2xl font-semibold mb-6">Meine Lager</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for lager in lagers %}
+            <a href="/lager/{{ lager[0] }}" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg transition">
+                <i class="fas fa-warehouse text-2xl text-yellow-500 mb-3"></i>
+                <h4 class="font-semibold">{{ lager[1] }}</h4>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    <a href="/logout" class="inline-block mt-8 text-red-400 hover:text-red-300">
+        <i class="fas fa-sign-out-alt mr-2"></i>Abmelden
+    </a>
+</div>
+{% endblock %}
