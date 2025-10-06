@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Compact Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-6 sm:mb-8">
+    <div>
+        <h1 class="text-xl sm:text-3xl font-bold text-gray-100 mb-1 sm:mb-2 flex items-center gap-2 sm:gap-3">
+            <i class="fas fa-box text-base sm:text-xl text-blue-500"></i>
+            <span>Geräte verwalten</span>
+        </h1>
+        <p class="text-xs sm:text-base text-gray-400">Verwalten Sie Ihre Geräte und Inventar</p>
+    </div>
+    <a href="/lager/{{ session['current_lager'] }}" 
+       class="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 rounded-lg sm:rounded-xl transition-colors border border-gray-700 touch-manipulation text-sm sm:text-base">
+        <i class="fas fa-arrow-left text-gray-400 text-xs sm:text-sm"></i>
+        <span class="text-gray-300">Zurück</span>
+    </a>
+</div>
+
+<!-- Filter Section -->
+<div class="glass-effect rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 border border-gray-800">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h2 class="text-base sm:text-xl font-semibold text-gray-100 flex items-center gap-2 sm:gap-3">
+            <i class="fas fa-filter text-sm sm:text-base text-blue-500"></i>
+            <span>Filter & Gruppierung</span>
+        </h2>
+        <button onclick="resetFilters()" 
+                class="w-full sm:w-auto px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors touch-manipulation">
+            <i class="fas fa-undo mr-2"></i>Zurücksetzen
+        </button>
+    </div>
+    
+    <!-- Responsive Filter Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        <!-- Search -->
+        <div class="sm:col-span-2 xl:col-span-1">
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-search mr-1 text-blue-400"></i>Suche
+            </label>
+            <input type="text" id="search-input" value="{{ search }}" placeholder="Geräte suchen..."
+                   class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+        </div>
+        
+        <!-- Status -->
+        <div>
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-info-circle mr-1 text-green-400"></i>Status
+            </label>
+            <select id="status-select" class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+                <option value="">Alle Status</option>
+                <option value="verfügbar" {% if "verfügbar" in status_filters %}selected{% endif %}>Verfügbar</option>
+                <option value="ausgeliehen" {% if "ausgeliehen" in status_filters %}selected{% endif %}>Ausgeliehen</option>
+                <option value="defekt" {% if "defekt" in status_filters %}selected{% endif %}>Defekt</option>
+            </select>
+        </div>
+        
+        <!-- Instrument -->
+        <div>
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-tag mr-1 text-purple-400"></i>Instrument
+            </label>
+            <select id="art-select" class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+                <option value="">Alle Instrumente</option>
+                {% for art in instrumentenarten %}
+                <option value="{{ art }}" {% if art in art_filters %}selected{% endif %}>{{ art }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Klasse -->
+        <div>
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-graduation-cap mr-1 text-orange-400"></i>Klasse
+            </label>
+            <select id="klasse-select" class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+                <option value="">Alle Klassen</option>
+                {% for klasse in klassen %}
+                <option value="{{ klasse }}" {% if klasse in klasse_filters %}selected{% endif %}>{{ klasse }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Sort -->
+        <div>
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-sort mr-1 text-yellow-400"></i>Sortieren
+            </label>
+            <select id="sort-select" class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                <option value="model" {% if sort_by == 'model' %}selected{% endif %}>Modell</option>
+                <option value="instrumentenart" {% if sort_by == 'instrumentenart' %}selected{% endif %}>Instrumentenart</option>
+                <option value="lagerplatz" {% if sort_by == 'lagerplatz' %}selected{% endif %}>Lagerplatz</option>
+                <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
+            </select>
+        </div>
+
+        <!-- Group -->
+        <div>
+            <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5 sm:mb-2">
+                <i class="fas fa-layer-group mr-1 text-pink-400"></i>Gruppierung
+            </label>
+            <select id="group-select" class="w-full p-2.5 sm:p-3 bg-gray-800 rounded-lg sm:rounded-xl border border-gray-700 focus:border-blue-500 focus:outline-none transition text-gray-100 text-sm sm:text-base">
+                <option value="none" {% if not group_by or group_by == 'none' %}selected{% endif %}>Keine</option>
+                <option value="model" {% if group_by == 'model' %}selected{% endif %}>Nach Modell</option>
+                <option value="instrument" {% if group_by == 'instrument' %}selected{% endif %}>Nach Instrument</option>
+                <option value="serial" {% if group_by == 'serial' %}selected{% endif %}>Nach Seriennummer</option>
+                <option value="status" {% if group_by == 'status' %}selected{% endif %}>Nach Status</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+    <a href="/add_device" class="group relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 active:from-green-800 active:to-green-900 p-3 sm:p-4 rounded-lg sm:rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover touch-manipulation">
+        <div class="absolute inset-0 bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <div class="relative text-sm sm:text-base">
+            <i class="fas fa-plus mr-1 sm:mr-2"></i>Neues Gerät
+        </div>
+    </a>
+    
+    <a href="/label-layout" class="group relative overflow-hidden bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 active:from-orange-800 active:to-orange-900 p-3 sm:p-4 rounded-lg sm:rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover touch-manipulation">
+        <div class="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <div class="relative text-sm sm:text-base">
+            <i class="fas fa-paint-brush mr-1 sm:mr-2"></i>Label Editor
+        </div>
+    </a>
+    
+    <a href="/export?format=csv&search={{ search }}&status={{ ','.join(status_filters) }}&art={{ ','.join(art_filters) }}&klasse={{ ','.join(klasse_filters) }}" 
+       class="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 active:from-blue-800 active:to-blue-900 p-3 sm:p-4 rounded-lg sm:rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover touch-manipulation">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <div class="relative text-sm sm:text-base">
+            <i class="fas fa-file-csv mr-1 sm:mr-2"></i>Export CSV
+        </div>
+    </a>
+    
+    <a href="/export?format=pdf_labels&search={{ search }}&status={{ ','.join(status_filters) }}&art={{ ','.join(art_filters) }}&klasse={{ ','.join(klasse_filters) }}" 
+       class="group relative overflow-hidden bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 active:from-purple-800 active:to-purple-900 p-3 sm:p-4 rounded-lg sm:rounded-2xl text-center font-semibold transition-all duration-300 shadow-card hover:shadow-card-hover touch-manipulation">
+        <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+        <div class="relative text-sm sm:text-base">
+            <i class="fas fa-tags mr-1 sm:mr-2"></i>PDF Etiketten
+        </div>
+    </a>
+</div>
+
+<!-- Device List -->
+<div id="device-list">
+    {% if grouped_devices and group_by != 'none' %}
+        {% for group_name, group_devices in grouped_devices.items() %}
+        <div class="group-card mb-4 sm:mb-6 glass-effect rounded-xl sm:rounded-2xl border border-gray-800 overflow-hidden">
+            <div class="group-header p-3 sm:p-4 cursor-pointer touch-manipulation" onclick="toggleGroup('{{ loop.index }}')">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                        <i id="group-icon-{{ loop.index }}" class="fas fa-chevron-down text-blue-400 transition-transform text-sm sm:text-base flex-shrink-0"></i>
+                        <h3 class="text-sm sm:text-lg font-semibold text-gray-100 truncate">{{ group_name }}</h3>
+                        <span class="px-2 sm:px-3 py-0.5 sm:py-1 bg-blue-600 text-blue-100 rounded-full text-xs sm:text-sm font-medium flex-shrink-0">({{ group_devices|length }})</span>
+                    </div>
+                    <div class="text-xs sm:text-sm text-gray-400 hidden sm:block">
+                        {% set available_count = group_devices | selectattr('4', 'equalto', 'verfügbar') | list | length %}
+                        {% set borrowed_count = group_devices | length - available_count %}
+                        <span class="text-green-400">{{ available_count }} verfügbar</span>
+                        {% if borrowed_count > 0 %}
+                        <span class="ml-2 text-red-400">{{ borrowed_count }} ausgeliehen</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div id="group-content-{{ loop.index }}" class="border-t border-gray-800">
+                {% for device in group_devices %}
+                <div class="device-card p-3 sm:p-4 border-b border-gray-800 last:border-b-0 hover:bg-gray-800/50 transition-colors">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="flex-1 w-full sm:w-auto">
+                            <div class="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                <h4 class="font-semibold text-gray-100 text-sm sm:text-base truncate">{{ device[1] }}</h4>
+                                <span class="px-2 py-0.5 sm:py-1 rounded-lg text-xs font-medium flex-shrink-0
+                                    {% if device[4] == 'verfügbar' %}bg-green-600/20 text-green-400 border border-green-600/30{% else %}bg-red-600/20 text-red-400 border border-red-600/30{% endif %}">
+                                    {{ device[4] }}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400">
+                                <div class="truncate"><i class="fas fa-barcode mr-1 sm:mr-2 text-blue-400"></i>{{ device[2] }}</div>
+                                <div class="truncate"><i class="fas fa-map-marker-alt mr-1 sm:mr-2 text-green-400"></i>{{ device[3] }}</div>
+                                <div class="truncate"><i class="fas fa-cog mr-1 sm:mr-2 text-purple-400"></i>{{ device[7] or 'N/A' }}</div>
+                                <div class="truncate"><i class="fas fa-tag mr-1 sm:mr-2 text-orange-400"></i>{{ device[8] or 'N/A' }}</div>
+                                <div class="truncate"><i class="fas fa-hashtag mr-1 sm:mr-2 text-red-400"></i>{{ device[6] or 'N/A' }}</div>
+                                <div class="truncate"><i class="fas fa-warehouse mr-1 sm:mr-2 text-red-400"></i>{{ device[9] or 'N/A' }}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-end">
+                            <a href="/edit_device/{{ device[0] }}" 
+                               class="flex-1 sm:flex-none p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 active:bg-blue-600/30 rounded-lg transition-colors touch-manipulation text-center">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="/delete_device/{{ device[0] }}" 
+                               class="flex-1 sm:flex-none p-2 text-red-400 hover:text-red-300 hover:bg-red-600/20 active:bg-red-600/30 rounded-lg transition-colors touch-manipulation text-center"
+                               onclick="return confirm('Gerät löschen?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        {% for device in devices %}
+        <div class="device-card glass-effect rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 border border-gray-800 hover:border-gray-700 transition-colors">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex-1 w-full sm:w-auto">
+                    <div class="flex items-center space-x-2 sm:space-x-3 mb-2">
+                        <h4 class="font-semibold text-gray-100 text-sm sm:text-base truncate">{{ device[1] }}</h4>
+                        <span class="px-2 py-0.5 sm:py-1 rounded-lg text-xs font-medium flex-shrink-0
+                            {% if device[4] == 'verfügbar' %}bg-green-600/20 text-green-400 border border-green-600/30{% else %}bg-red-600/20 text-red-400 border border-red-600/30{% endif %}">
+                            {{ device[4] }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400">
+                        <div class="truncate"><i class="fas fa-barcode mr-1 sm:mr-2 text-blue-400"></i>{{ device[2] }}</div>
+                        <div class="truncate"><i class="fas fa-map-marker-alt mr-1 sm:mr-2 text-green-400"></i>{{ device[3] }}</div>
+                        <div class="truncate"><i class="fas fa-cog mr-1 sm:mr-2 text-purple-400"></i>{{ device[7] or 'N/A' }}</div>
+                        <div class="truncate"><i class="fas fa-tag mr-1 sm:mr-2 text-orange-400"></i>{{ device[8] or 'N/A' }}</div>
+                        <div class="truncate"><i class="fas fa-hashtag mr-1 sm:mr-2 text-red-400"></i>{{ device[6] or 'N/A' }}</div>
+                        <div class="truncate"><i class="fas fa-warehouse mr-1 sm:mr-2 text-red-400"></i>{{ device[9] or 'N/A' }}</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-end">
+                    <a href="/edit_device/{{ device[0] }}" 
+                       class="flex-1 sm:flex-none p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 active:bg-blue-600/30 rounded-lg transition-colors touch-manipulation text-center">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="/delete_device/{{ device[0] }}" 
+                       class="flex-1 sm:flex-none p-2 text-red-400 hover:text-red-300 hover:bg-red-600/20 active:bg-red-600/30 rounded-lg transition-colors touch-manipulation text-center"
+                       onclick="return confirm('Gerät löschen?')">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<style>
+    /* Mobile viewport optimization */
+    @media (max-width: 640px) {
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        .max-w-7xl {
+            padding-top: 1rem !important;
+        }
+        
+        /* Better touch targets */
+        .touch-manipulation {
+            min-height: 44px;
+        }
+        
+        /* Active state feedback */
+        .touch-manipulation:active {
+            transform: scale(0.98);
+        }
+    }
+    
+    /* Touch optimizations */
+    .touch-manipulation {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Prevent zoom */
+    a, button, select, input {
+        touch-action: manipulation;
+    }
+    
+    /* Text truncation */
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+{% endblock %}

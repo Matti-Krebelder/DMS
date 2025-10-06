@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Label Layout Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+         /* Custom scrollbar and modern styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #262626;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #525252;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'gray': {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            400: '#a3a3a3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            850: '#1f1f1f',
+                            900: '#171717',
+                            950: '#0a0a0a'
+                        },
+                        'blue': {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        'green': {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d'
+                        },
+                        'orange': {
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c'
+                        },
+                        'red': {
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c'
+                        },
+                        'purple': {
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7c3aed'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    borderRadius: {
+                        'xl': '12px',
+                        '2xl': '16px'
+                    },
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .draggable {
+            cursor: move;
+            user-select: none;
+        }
+        .draggable:hover {
+            opacity: 0.8;
+        }
+        .drop-zone {
+            border: 2px dashed #4b5563;
+            position: relative;
+            background: white;
+        }
+        .drop-zone.drag-over {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .field-element {
+            position: absolute;
+            border: 1px solid #6b7280;
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            cursor: move;
+            min-width: 30px;
+            min-height: 20px;
+        }
+        .field-element:hover {
+            border-color: #3b82f6;
+        }
+        .field-element.selected {
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+        }
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border: 1px solid #fff;
+            cursor: se-resize;
+            bottom: -4px;
+            right: -4px;
+        }
+        .canvas-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 200px);
+            overflow: auto;
+            padding: 2rem;
+        }
+        .label-canvas {
+            transform-origin: center center;
+            border: 1px solid #4b5563;
+            background: white;
+            color: black;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen overflow-hidden">
+    <div class="flex flex-col h-screen">
+        <div class="flex-shrink-0 bg-gray-800 px-6 py-4 border-b border-gray-700">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">
+                    <i class="fas fa-tags mr-3 text-blue-500"></i>{{ title }}
+                </h1>
+                <div class="flex space-x-3">
+                    <input type="text" id="labelName" value="{{ label_name }}" placeholder="Label Name" 
+                           class="px-3 py-2 bg-gray-700 rounded text-sm">
+                    <button onclick="saveLayout()" class="bg-blue-600 hover:bg-green-700 px-3 py-2 rounded text-sm font-semibold transition">
+                        <i class="fas fa-save mr-1"></i>Speichern
+                    </button>
+                    <a href="{{ url_for('label_layout') }}" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm font-semibold transition">
+                        <i class="fas fa-arrow-left mr-1"></i>Zurück
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-1 overflow-hidden">
+            <div class="flex-shrink-0 w-80 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+                <div class="p-4 bg-gray-900">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fas fa-ruler-combined mr-2"></i>Etiketten-Größe
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Breite (mm)</label>
+                                <input type="number" id="labelWidth" value="50" min="10" max="200" 
+                                       class="w-full p-2 bg-gray-700 rounded text-sm" onchange="updateLabelSize()">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Höhe (mm)</label>
+                                <input type="number" id="labelHeight" value="30" min="10" max="200" 
+                                       class="w-full p-2 bg-gray-700 rounded text-sm" onchange="updateLabelSize()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fas fa-search-plus mr-2"></i>Zoom
+                        </h3>
+                        <div class="flex items-center space-x-3">
+                            <input type="range" id="zoomSlider" min="50" max="300" value="150" 
+                                   class="flex-1" onchange="updateZoom()">
+                            <span id="zoomValue" class="text-sm text-gray-400 w-12">150%</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fas fa-toolbox mr-2"></i>Felder
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="qr" draggable="true">
+                                <i class="fas fa-qrcode mr-3 text-blue-400"></i>QR Code
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="name" draggable="true">
+                                <i class="fas fa-tag mr-3 text-green-400"></i>Gerätename
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="barcode" draggable="true">
+                                <i class="fas fa-barcode mr-3 text-yellow-400"></i>Barcode
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="modell" draggable="true">
+                                <i class="fas fa-microchip mr-3 text-cyan-400"></i>Modell
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="instrumentenart" draggable="true">
+                                <i class="fas fa-tools mr-3 text-pink-400"></i>Instrumentenart
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="seriennummer" draggable="true">
+                                <i class="fas fa-hashtag mr-3 text-teal-400"></i>Seriennummer
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="inventarnummer" draggable="true">
+                                <i class="fas fa-list-ol mr-3 text-orange-400"></i>Inventar-Nr
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="location" draggable="true">
+                                <i class="fas fa-map-marker-alt mr-3 text-red-400"></i>Lagerplatz
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="beschreibung" draggable="true">
+                                <i class="fas fa-align-left mr-3 text-gray-400"></i>Beschreibung
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="kaufdatum" draggable="true">
+                                <i class="fas fa-calendar mr-3 text-blue-300"></i>Kaufdatum
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="preis" draggable="true">
+                                <i class="fas fa-euro-sign mr-3 text-green-300"></i>Preis
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="borrower_name" draggable="true">
+                                <i class="fas fa-user mr-3 text-purple-300"></i>Ausgeliehen an
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="borrower_id" draggable="true">
+                                <i class="fas fa-id-card mr-3 text-indigo-300"></i>Ausleiher-ID
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="class" draggable="true">
+                                <i class="fas fa-graduation-cap mr-3 text-purple-400"></i>Klasse
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="email" draggable="true">
+                                <i class="fas fa-envelope mr-3 text-blue-500"></i>E-Mail
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="borrow_date" draggable="true">
+                                <i class="fas fa-calendar-check mr-3 text-yellow-300"></i>Ausleihdatum
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="destination" draggable="true">
+                                <i class="fas fa-map-pin mr-3 text-red-300"></i>Zielort
+                            </div>
+                            <div class="draggable bg-blue-700 p-3 rounded cursor-pointer hover:bg-gray-600 transition flex items-center" 
+                                 data-field-type="text" draggable="true">
+                                <i class="fas fa-font mr-3 text-indigo-400"></i>Textfeld
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="propertiesPanel" class="hidden">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center">
+                            <i class="fas fa-cog mr-2"></i>Eigenschaften
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Schriftgröße (px)</label>
+                                <input type="number" id="fontSize" value="12" min="6" max="24" 
+                                       class="w-full p-2 bg-gray-700 rounded text-sm" onchange="updateSelectedField()">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Text</label>
+                                <input type="text" id="fieldText" placeholder="Text eingeben" 
+                                       class="w-full p-2 bg-gray-700 rounded text-sm" onchange="updateSelectedField()">
+                            </div>
+                            <div>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="fieldBold" class="mr-2" onchange="updateSelectedField()">
+                                    <span class="text-sm">Fett</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Textausrichtung</label>
+                                <select id="textAlign" class="w-full p-2 bg-gray-700 rounded text-sm" onchange="updateSelectedField()">
+                                    <option value="left">Links</option>
+                                    <option value="center">Zentriert</option>
+                                    <option value="right">Rechts</option>
+                                </select>
+                            </div>
+                            <button onclick="deleteSelectedField()" class="w-full bg-red-600 hover:bg-red-700 p-2 rounded text-sm font-semibold transition">
+                                <i class="fas fa-trash mr-1"></i>Feld löschen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+ 
+            <div class="flex-1 bg-gray-950 canvas-container">
+                <div id="labelCanvas" class="drop-zone label-canvas"
+                     style="width: 189px; height: 113px; transform: scale(1.5);">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-shrink-0 bg-gray-800 px-6 py-3 border-t border-gray-700">
+            <div class="text-sm text-gray-400 flex items-center justify-between">
+                <span><i class="fas fa-info-circle mr-1"></i>Ziehen Sie Felder aus der Seitenleiste in den Design-Bereich</span>
+                <span><i class="fas fa-keyboard mr-1"></i>Entf-Taste zum Löschen</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedField = null;
+        let draggedElement = null;
+        let isDragging = false;
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+        let fieldCounter = 0;
+        let currentLabelId = {{ label_id if label_id else 'null' }};
+
+        // Initialize drag and drop
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragAndDrop();
+            updateLabelSize();
+            
+            {% if layout_data and layout_data != '{}' %}
+            loadLayoutFromData({{ layout_data|safe }});
+            {% endif %}
+        });
+
+        function initializeDragAndDrop() {
+            const toolboxItems = document.querySelectorAll('.draggable[data-field-type]');
+            const canvas = document.getElementById('labelCanvas');
+
+            toolboxItems.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    draggedElement = this;
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+            });
+
+            canvas.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                this.classList.add('drag-over');
+            });
+
+            canvas.addEventListener('dragleave', function(e) {
+                this.classList.remove('drag-over');
+            });
+
+            canvas.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                if (draggedElement) {
+                    const rect = this.getBoundingClientRect();
+                    const zoom = parseFloat(document.getElementById('zoomSlider').value) / 100;
+                    const x = (e.clientX - rect.left) / zoom;
+                    const y = (e.clientY - rect.top) / zoom;
+                    
+                    createField(draggedElement.dataset.fieldType, x, y);
+                    draggedElement = null;
+                }
+            });
+        }
+
+        function createField(type, x, y) {
+            fieldCounter++;
+            const field = document.createElement('div');
+            field.className = 'field-element';
+            field.dataset.fieldType = type;
+            field.dataset.fieldId = 'field_' + fieldCounter;
+            field.style.left = Math.max(0, x - 25) + 'px';
+            field.style.top = Math.max(0, y - 15) + 'px';
+            field.style.width = '80px';
+            field.style.height = '30px';
+            field.style.fontSize = '12px';
+            field.style.textAlign = 'left';
+
+            let content = '';
+            switch(type) {
+                case 'qr':
+                    content = '<i class="fas fa-qrcode"></i> QR';
+                    field.style.width = '60px';
+                    field.style.height = '60px';
+                    break;
+                case 'name':
+                    content = 'Gerätename';
+                    field.style.width = '100px';
+                    break;
+                case 'barcode':
+                    content = 'Barcode';
+                    field.style.width = '120px';
+                    break;
+                case 'modell':
+                    content = 'Modell';
+                    field.style.width = '80px';
+                    break;
+                case 'instrumentenart':
+                    content = 'Instrumentenart';
+                    field.style.width = '120px';
+                    break;
+                case 'seriennummer':
+                    content = 'Seriennummer';
+                    field.style.width = '100px';
+                    break;
+                case 'inventarnummer':
+                    content = 'Inventar-Nr';
+                    field.style.width = '90px';
+                    break;
+                case 'location':
+                    content = 'Lagerplatz';
+                    field.style.width = '80px';
+                    break;
+                case 'beschreibung':
+                    content = 'Beschreibung';
+                    field.style.width = '120px';
+                    break;
+                case 'kaufdatum':
+                    content = 'Kaufdatum';
+                    field.style.width = '90px';
+                    break;
+                case 'preis':
+                    content = 'Preis';
+                    field.style.width = '60px';
+                    break;
+                case 'borrower_name':
+                    content = 'Ausgeliehen an';
+                    field.style.width = '110px';
+                    break;
+                case 'borrower_id':
+                    content = 'Ausleiher-ID';
+                    field.style.width = '90px';
+                    break;
+                case 'class':
+                    content = 'Klasse';
+                    field.style.width = '60px';
+                    break;
+                case 'email':
+                    content = 'E-Mail';
+                    field.style.width = '100px';
+                    break;
+                case 'borrow_date':
+                    content = 'Ausleihdatum';
+                    field.style.width = '100px';
+                    break;
+                case 'destination':
+                    content = 'Zielort';
+                    field.style.width = '70px';
+                    break;
+                case 'text':
+                    content = 'Text';
+                    field.style.width = '60px';
+                    break;
+                default:
+                    content = 'Unbekannt';
+                    break;
+            }
+
+            field.innerHTML = `
+                <div class="p-1 text-xs text-center h-full flex items-center justify-center overflow-hidden">
+                    ${content}
+                </div>
+                <div class="resize-handle"></div>
+            `;
+
+            // Add event listeners
+            field.addEventListener('click', function(e) {
+                e.stopPropagation();
+                selectField(this);
+            });
+
+            field.addEventListener('mousedown', function(e) {
+                if (e.target.classList.contains('resize-handle')) {
+                    startResize(e, this);
+                } else {
+                    startDrag(e, this);
+                }
+            });
+
+            document.getElementById('labelCanvas').appendChild(field);
+            selectField(field);
+        }
+
+        function updateLabelSize() {
+            const width = document.getElementById('labelWidth').value;
+            const height = document.getElementById('labelHeight').value;
+            const canvas = document.getElementById('labelCanvas');
+            
+            // Convert mm to pixels (assuming 96 DPI)
+            const pixelWidth = (width * 96) / 25.4;
+            const pixelHeight = (height * 96) / 25.4;
+            
+            canvas.style.width = pixelWidth + 'px';
+            canvas.style.height = pixelHeight + 'px';
+        }
+
+        function updateZoom() {
+            const zoom = document.getElementById('zoomSlider').value;
+            const canvas = document.getElementById('labelCanvas');
+            
+            canvas.style.transform = `scale(${zoom / 100})`;
+            document.getElementById('zoomValue').textContent = zoom + '%';
+        }
+
+        function selectField(field) {
+            // Remove selection from other fields
+            document.querySelectorAll('.field-element').forEach(f => {
+                f.classList.remove('selected');
+            });
+
+            // Select this field
+            field.classList.add('selected');
+            selectedField = field;
+
+            // Show properties panel
+            showProperties(field);
+        }
+
+        function showProperties(field) {
+            const panel = document.getElementById('propertiesPanel');
+            panel.classList.remove('hidden');
+
+            // Populate properties based on field type
+            const type = field.dataset.fieldType;
+            const fontSize = parseInt(field.style.fontSize) || 12;
+            const text = field.querySelector('div').textContent;
+            const textAlign = field.style.textAlign || 'left';
+
+            document.getElementById('fontSize').value = fontSize;
+            document.getElementById('fieldText').value = text;
+            document.getElementById('fieldBold').checked = field.style.fontWeight === 'bold';
+            document.getElementById('textAlign').value = textAlign;
+        }
+
+        function updateSelectedField() {
+            if (!selectedField) return;
+
+            const fontSize = document.getElementById('fontSize').value + 'px';
+            const text = document.getElementById('fieldText').value;
+            const bold = document.getElementById('fieldBold').checked;
+            const textAlign = document.getElementById('textAlign').value;
+
+            selectedField.style.fontSize = fontSize;
+            selectedField.style.fontWeight = bold ? 'bold' : 'normal';
+            selectedField.style.textAlign = textAlign;
+            
+            if (text && (selectedField.dataset.fieldType === 'text' || text !== selectedField.querySelector('div').textContent)) {
+                selectedField.querySelector('div').textContent = text;
+            }
+        }
+
+        function deleteSelectedField() {
+            if (selectedField) {
+                selectedField.remove();
+                selectedField = null;
+                document.getElementById('propertiesPanel').classList.add('hidden');
+            }
+        }
+
+        function startDrag(e, field) {
+            isDragging = true;
+            const rect = field.getBoundingClientRect();
+            const canvasRect = document.getElementById('labelCanvas').getBoundingClientRect();
+            
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging || !selectedField) return;
+
+            const canvas = document.getElementById('labelCanvas');
+            const canvasRect = canvas.getBoundingClientRect();
+            const zoom = parseFloat(document.getElementById('zoomSlider').value) / 100;
+            
+            let newX = (e.clientX - canvasRect.left) / zoom - startX;
+            let newY = (e.clientY - canvasRect.top) / zoom - startY;
+
+            // Keep within bounds
+            newX = Math.max(0, Math.min(newX, canvas.offsetWidth - selectedField.offsetWidth));
+            newY = Math.max(0, Math.min(newY, canvas.offsetHeight - selectedField.offsetHeight));
+
+            selectedField.style.left = newX + 'px';
+            selectedField.style.top = newY + 'px';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        function startResize(e, field) {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(document.defaultView.getComputedStyle(field).width, 10);
+            startHeight = parseInt(document.defaultView.getComputedStyle(field).height, 10);
+
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
+        }
+
+        function resize(e) {
+            if (!isResizing || !selectedField) return;
+
+            const newWidth = startWidth + e.clientX - startX;
+            const newHeight = startHeight + e.clientY - startY;
+
+            selectedField.style.width = Math.max(30, newWidth) + 'px';
+            selectedField.style.height = Math.max(20, newHeight) + 'px';
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        async function saveLayout() {
+            const labelName = document.getElementById('labelName').value || 'Unbenannt';
+            const fields = [];
+            
+            document.querySelectorAll('.field-element').forEach(field => {
+                fields.push({
+                    type: field.dataset.fieldType,
+                    x: parseInt(field.style.left),
+                    y: parseInt(field.style.top),
+                    width: parseInt(field.style.width),
+                    height: parseInt(field.style.height),
+                    fontSize: field.style.fontSize || '12px',
+                    fontWeight: field.style.fontWeight || 'normal',
+                    textAlign: field.style.textAlign || 'left',
+                    text: field.querySelector('div').textContent
+                });
+            });
+
+            const layout = {
+                label_id: currentLabelId,
+                name: labelName,
+                layout: {
+                    labelWidth: document.getElementById('labelWidth').value,
+                    labelHeight: document.getElementById('labelHeight').value,
+                    fields: fields
+                }
+            };
+
+            try {
+                const response = await fetch('/save-layout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(layout)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    currentLabelId = result.label_id;
+                    alert('Layout erfolgreich gespeichert!');
+                    // Update URL if this was a new label
+                    if (!{{ label_id if label_id else 'false' }}) {
+                        window.history.replaceState({}, '', `/label-layout/edit/${currentLabelId}`);
+                    }
+                } else {
+                    alert('Fehler beim Speichern: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving layout:', error);
+                alert('Fehler beim Speichern des Layouts.');
+            }
+        }
+
+        function loadLayoutFromData(layoutData) {
+            if (!layoutData || !layoutData.labelWidth) return;
+            
+            // Set label dimensions
+            document.getElementById('labelWidth').value = layoutData.labelWidth;
+            document.getElementById('labelHeight').value = layoutData.labelHeight;
+            updateLabelSize();
+            
+            // Clear existing fields
+            document.querySelectorAll('.field-element').forEach(field => field.remove());
+            
+            // Add saved fields
+            if (layoutData.fields) {
+                layoutData.fields.forEach(fieldData => {
+                    fieldCounter++;
+                    const field = document.createElement('div');
+                    field.className = 'field-element';
+                    field.dataset.fieldType = fieldData.type;
+                    field.dataset.fieldId = 'field_' + fieldCounter;
+                    field.style.left = fieldData.x + 'px';
+                    field.style.top = fieldData.y + 'px';
+                    field.style.width = fieldData.width + 'px';
+                    field.style.height = fieldData.height + 'px';
+                    field.style.fontSize = fieldData.fontSize;
+                    field.style.fontWeight = fieldData.fontWeight;
+                    field.style.textAlign = fieldData.textAlign;
+
+                    field.innerHTML = `
+                        <div class="p-1 text-xs text-center h-full flex items-center justify-center overflow-hidden">
+                            ${fieldData.text}
+                        </div>
+                        <div class="resize-handle"></div>
+                    `;
+
+                    // Add event listeners
+                    field.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        selectField(this);
+                    });
+
+                    field.addEventListener('mousedown', function(e) {
+                        if (e.target.classList.contains('resize-handle')) {
+                            startResize(e, this);
+                        } else {
+                            startDrag(e, this);
+                        }
+                    });
+
+                    document.getElementById('labelCanvas').appendChild(field);
+                });
+            }
+        }
+
+        // Click outside to deselect
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.field-element') && !e.target.closest('#propertiesPanel')) {
+                document.querySelectorAll('.field-element').forEach(f => {
+                    f.classList.remove('selected');
+                });
+                selectedField = null;
+                document.getElementById('propertiesPanel').classList.add('hidden');
+            }
+        });
+
+        // Delete selected field with Delete key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Delete' && selectedField) {
+                deleteSelectedField();
+            }
+        });
+    </script>
+</body>
+</html>

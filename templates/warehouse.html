@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="px-4 sm:px-0 pb-4">
+    <!-- Compact Header -->
+    <div class="text-center mb-6 sm:mb-10">
+        <h1 class="text-2xl sm:text-4xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+            <i class="fas fa-warehouse text-xl sm:text-3xl"></i>
+            <span>Lager</span>
+        </h1>
+    </div>
+    
+    <!-- Responsive Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 max-w-5xl mx-auto">
+        <!-- Geräte -->
+        <a href="/devices" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-box text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-lg font-semibold text-center">Geräte</h2>
+            </div>
+        </a>
+        
+        <!-- Ausleihen -->
+        <a href="/borrow" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-hand-holding text-2xl sm:text-4xl text-green-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-lg font-semibold text-center">Ausleihen</h2>
+            </div>
+        </a>
+        
+        <!-- Zurückgeben -->
+        <a href="/return" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-undo text-2xl sm:text-4xl text-yellow-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-lg font-semibold text-center">Zurückgeben</h2>
+            </div>
+        </a>
+        
+        <!-- Inventar -->
+        <a href="/inventory" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-list text-2xl sm:text-4xl text-purple-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-lg font-semibold text-center">Inventar</h2>
+            </div>
+        </a>
+        
+        <!-- Info -->
+        <a href="/info" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation col-span-2 sm:col-span-1">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-qrcode text-2xl sm:text-4xl text-orange-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-lg font-semibold text-center">Info</h2>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Back Button -->
+    <div class="text-center mt-6 sm:mt-10">
+        <a href="/dashboard" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 text-gray-400 hover:text-white active:text-gray-300 transition-colors touch-manipulation text-xs sm:text-base">
+            <i class="fas fa-arrow-left mr-2 text-sm sm:text-base"></i>
+            <span>Zurück zum Dashboard</span>
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Mobile viewport optimization */
+    @media (max-width: 640px) {
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        .max-w-7xl {
+            padding-top: 1rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+    }
+    
+    /* Enhanced mobile touch targets */
+    .touch-manipulation {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Smooth transitions for mobile */
+    @media (max-width: 640px) {
+        .group:active i {
+            transform: scale(1.05);
+        }
+    }
+    
+    /* Prevent zoom on double tap */
+    a, button {
+        touch-action: manipulation;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-0">
+    <!-- Compact Header -->
+    <h1 class="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 flex items-center justify-center gap-2 sm:gap-3">
+        <i class="fas fa-hand-holding text-xl sm:text-2xl"></i>
+        <span>Ausleihen</span>
+    </h1>
+    
+    <!-- Barcode Scanner Form -->
+    <form method="POST" class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <input type="text" name="barcode" placeholder="Barcode scannen oder eingeben"
+                   class="flex-1 p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none text-sm sm:text-base border border-gray-600 text-gray-100"
+                   data-autofocus>
+            <button type="submit" name="add_device" 
+                    class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:bg-blue-800 px-6 py-3 rounded-lg sm:rounded-xl font-semibold transition-colors touch-manipulation text-sm sm:text-base">
+                <i class="fas fa-plus mr-2"></i>Hinzufügen
+            </button>
+        </div>
+    </form>
+
+    <!-- Selected Devices List -->
+    {% if borrow_list %}
+    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-100">Ausgewählte Geräte:</h2>
+        
+        <!-- Device Cards -->
+        <div class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+            {% for device in borrow_list %}
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 bg-gray-700 p-3 sm:p-4 rounded-lg border border-gray-600">
+                <div class="flex-1 min-w-0 w-full sm:w-auto">
+                    <div class="font-medium text-gray-100 text-sm sm:text-base truncate">{{ device.name }}</div>
+                    <div class="text-xs sm:text-sm text-gray-400 truncate">({{ device.barcode }})</div>
+                </div>
+                <a href="/remove_from_borrow/{{ device.id }}" 
+                   class="w-full sm:w-auto text-center sm:text-left text-red-400 hover:text-red-300 active:text-red-200 transition-colors touch-manipulation p-2 sm:p-0">
+                    <i class="fas fa-times mr-2 sm:mr-0"></i>
+                    <span class="sm:hidden">Entfernen</span>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Complete Borrow Form -->
+        <form method="POST" class="space-y-3 sm:space-y-4">
+            {% if system_type == 'institutional' %}
+            <div>
+                <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
+                    <i class="fas fa-user mr-1 text-blue-400"></i>Name des Ausleihers *
+                </label>
+                <input type="text" name="borrower_name" placeholder="Name eingeben" required
+                       class="w-full p-2.5 sm:p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none border border-gray-600 text-gray-100 text-sm sm:text-base">
+            </div>
+            
+            <div>
+                <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
+                    <i class="fas fa-id-card mr-1 text-green-400"></i>Ausleiher ID (optional)
+                </label>
+                <input type="text" name="borrower_id" placeholder="ID eingeben"
+                       class="w-full p-2.5 sm:p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none border border-gray-600 text-gray-100 text-sm sm:text-base">
+            </div>
+            
+            <div>
+                <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
+                    <i class="fas fa-envelope mr-1 text-purple-400"></i>E-Mail (optional)
+                </label>
+                <input type="email" name="email" placeholder="E-Mail eingeben"
+                       class="w-full p-2.5 sm:p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none border border-gray-600 text-gray-100 text-sm sm:text-base">
+            </div>
+            
+            <div>
+                <label class="block text-xs sm:text-sm font-medium text-gray-300 mb-1.5">
+                    <i class="fas fa-graduation-cap mr-1 text-orange-400"></i>Klasse (optional)
+                </label>
+                <input type="text" name="klasse" placeholder="Klasse eingeben"
+                       class="w-full p-2.5 sm:p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none border border-gray-600 text-gray-100 text-sm sm:text-base">
+            </div>
+            {% endif %}
+            
+            <button type="submit" name="complete_borrow" 
+                    class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 p-3 sm:p-4 rounded-lg sm:rounded-xl font-semibold transition-colors touch-manipulation text-sm sm:text-base">
+                <i class="fas fa-check mr-2"></i>Ausleihe abschließen
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <a href="/lager/{{ session.current_lager }}" 
+       class="block text-center text-gray-400 hover:text-white active:text-gray-300 transition-colors py-3 touch-manipulation text-sm sm:text-base">
+        <i class="fas fa-arrow-left mr-2"></i>Zurück
+    </a>
+</div>
+
+<style>
+    /* Mobile viewport optimization */
+    @media (max-width: 640px) {
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        .max-w-7xl {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        
+        /* Better touch targets */
+        .touch-manipulation {
+            min-height: 44px;
+        }
+    }
+    
+    /* Touch optimizations */
+    .touch-manipulation {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Prevent zoom */
+    a, button, input {
+        touch-action: manipulation;
+    }
+    
+    /* Text truncation */
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Input font size to prevent zoom on iOS */
+    @media (max-width: 640px) {
+        input, select, textarea {
+            font-size: 16px;
+        }
+    }
+</style>
+
+{% endblock %}

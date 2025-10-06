@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-100 mb-2">
+                    <i class="fas fa-tags mr-3 text-blue-500"></i>Label Editor
+                </h1>
+                <p class="text-gray-400">Verwalten Sie Ihre Label-Layouts</p>
+            </div>
+            <div class="flex gap-4">
+                <a href="{{ url_for('label_layout') }}/new" 
+                   class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all duration-300 shadow-card hover:shadow-card-hover font-medium">
+                    <i class="fas fa-plus"></i>
+                    <span>Neues Label</span>
+                </a>
+                <a href="{{ url_for('warehouse', lager_id=session.current_lager) }}" 
+                   class="flex items-center space-x-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors border border-gray-700">
+                    <i class="fas fa-arrow-left text-gray-400"></i>
+                    <span class="text-gray-300">Zurück</span>
+                </a>
+            </div>
+        </div>
+
+        {% if labels %}
+        <!-- Labels Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for label in labels %}
+            <div class="glass-effect rounded-2xl p-6 border {% if label[2] %}border-blue-500{% else %}border-gray-800{% endif %} hover:border-gray-700 transition-all duration-300 shadow-card hover:shadow-card-hover">
+                <!-- Header mit Dropdown -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-3">{{ label[1] }}</h3>
+                        <div class="flex items-center gap-2">
+                            {% if label[2] %}
+                            <span class="px-3 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full border border-blue-600/30 font-medium">
+                                <i class="fas fa-star mr-1"></i>Standard
+                            </span>
+                            {% endif %}
+                            <span class="px-3 py-1 bg-gray-700/50 text-gray-400 text-xs rounded-full border border-gray-700">
+                                <i class="fas fa-calendar mr-1"></i>{{ label[3][:10] }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Dropdown Menu -->
+                    <div class="relative">
+                        <button onclick="toggleDropdown({{ label[0] }})" 
+                                class="p-2 text-gray-400 hover:text-gray-100 hover:bg-gray-700/50 rounded-lg transition-colors">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="dropdown-{{ label[0] }}" 
+                             class="absolute right-0 mt-2 w-56 glass-effect rounded-xl shadow-lg border border-gray-700 hidden z-10 overflow-hidden">
+                            <a href="{{ url_for('edit_label_layout', label_id=label[0]) }}" 
+                               class="flex items-center px-4 py-3 text-sm hover:bg-gray-700/50 transition-colors text-gray-300 hover:text-white">
+                                <i class="fas fa-edit mr-3 text-blue-400"></i>Bearbeiten
+                            </a>
+                            {% if not label[2] %}
+                            <button onclick="setDefault({{ label[0] }})" 
+                                    class="w-full flex items-center px-4 py-3 text-sm hover:bg-gray-700/50 transition-colors text-gray-300 hover:text-white">
+                                <i class="fas fa-star mr-3 text-yellow-400"></i>Als Standard setzen
+                            </button>
+                            {% endif %}
+                            <button onclick="deleteLabel({{ label[0] }})" 
+                                    class="w-full flex items-center px-4 py-3 text-sm hover:bg-red-600/20 transition-colors text-red-400 hover:text-red-300 border-t border-gray-700">
+                                <i class="fas fa-trash mr-3"></i>Löschen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Button -->
+                <a href="{{ url_for('edit_label_layout', label_id=label[0]) }}" 
+                   class="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-4 py-3 rounded-xl transition-all duration-300 font-medium mt-4">
+                    <i class="fas fa-paint-brush"></i>
+                    <span>Label bearbeiten</span>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="glass-effect rounded-2xl p-12 text-center border border-gray-800">
+            <div class="max-w-md mx-auto">
+                <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-tags text-5xl text-gray-600"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-100 mb-3">Keine Labels vorhanden</h2>
+                <p class="text-gray-400 mb-8">Erstellen Sie Ihr erstes Label-Layout für Ihre Geräte</p>
+                <a href="{{ url_for('new_label_layout') }}" 
+                   class="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-8 py-4 rounded-xl transition-all duration-300 shadow-card hover:shadow-card-hover font-medium">
+                    <i class="fas fa-plus"></i>
+                    <span>Erstes Label erstellen</span>
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleDropdown(labelId) {
+    // Close all other dropdowns
+    document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+        if (dropdown.id !== `dropdown-${labelId}`) {
+            dropdown.classList.add('hidden');
+        }
+    });
+    
+    // Toggle current dropdown
+    const dropdown = document.getElementById(`dropdown-${labelId}`);
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('[onclick^="toggleDropdown"]')) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+        });
+    }
+});
+
+function setDefault(labelId) {
+    fetch(`/set-default-label/${labelId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Fehler beim Setzen des Standard-Labels');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Fehler beim Setzen des Standard-Labels');
+    });
+}
+
+function deleteLabel(labelId) {
+    if (confirm('Sind Sie sicher, dass Sie dieses Label löschen möchten?')) {
+        fetch(`/delete-label/${labelId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Fehler beim Löschen des Labels');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Fehler beim Löschen des Labels');
+        });
+    }
+}
+</script>
+{% endblock %}

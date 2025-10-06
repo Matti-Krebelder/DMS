@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="px-4 sm:px-0 pb-4">
+    <!-- Compact Header -->
+    <div class="text-center mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-4xl font-bold mb-1">Hallo {{ session.user_name }}</h1>
+        <p class="text-xs sm:text-sm text-gray-500">ID: {{ session.user_id }}</p>
+    </div>
+    
+    <!-- Compact Action Cards -->
+    <div class="grid grid-cols-2 gap-3 sm:gap-6 max-w-2xl mx-auto mb-6 sm:mb-10">
+        <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-plus text-2xl sm:text-4xl text-green-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-xl font-semibold">Neues Lager</h2>
+            </div>
+        </a>
+        
+        <a href="/manage_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-cog text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-xl font-semibold">Lager verwalten</h2>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Compact Lager List -->
+    <div>
+        <h3 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-6 text-center">Meine Lager</h3>
+        
+        {% if lagers %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
+            {% for lager in lagers %}
+            <a href="/lager/{{ lager[0] }}" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-3.5 sm:p-6 rounded-lg sm:rounded-xl transition-all duration-200 touch-manipulation group">
+                <div class="flex items-center sm:flex-col sm:items-center sm:text-center gap-3 sm:gap-0">
+                    <i class="fas fa-warehouse text-lg sm:text-2xl text-yellow-500 sm:mb-3 group-hover:scale-110 transition-transform flex-shrink-0"></i>
+                    <h4 class="font-semibold text-sm sm:text-lg truncate flex-1 sm:flex-none">{{ lager[1] }}</h4>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-6 sm:py-12 bg-gray-800/50 rounded-lg sm:rounded-xl">
+            <i class="fas fa-warehouse text-3xl sm:text-5xl text-gray-600 mb-3 sm:mb-4"></i>
+            <p class="text-gray-400 text-xs sm:text-base">Noch keine Lager vorhanden</p>
+            <p class="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">Erstelle dein erstes Lager</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Compact Logout -->
+    <div class="mt-6 sm:mt-10 text-center">
+        <a href="/logout" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 touch-manipulation text-xs sm:text-base">
+            <i class="fas fa-sign-out-alt mr-2 text-sm sm:text-base"></i>
+            <span>Abmelden</span>
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Mobile viewport optimization */
+    @media (max-width: 640px) {
+        body {
+            /* Account for mobile browser UI */
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        /* Reduce vertical spacing further on small screens */
+        .max-w-7xl {
+            padding-top: 1rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+    }
+    
+    /* Enhanced mobile touch targets */
+    .touch-manipulation {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Smooth transitions for mobile */
+    @media (max-width: 640px) {
+        .group:active i {
+            transform: scale(1.05);
+        }
+    }
+    
+    /* Prevent zoom on double tap */
+    a, button {
+        touch-action: manipulation;
+    }
+    
+    /* Ensure text doesn't overflow */
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}

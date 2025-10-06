@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-0">
+    <!-- Compact Header -->
+    <h1 class="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 flex items-center justify-center gap-2 sm:gap-3">
+        <i class="fas fa-undo text-xl sm:text-2xl"></i>
+        <span>Zurückgeben</span>
+    </h1>
+    
+    <!-- QR/Barcode Scanner Form -->
+    <form method="POST" class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <input type="text" name="qr_code" 
+                   placeholder="{% if system_type == 'personal' %}Rückgabe-QR-Code{% else %}Geräte-Barcode{% endif %} scannen"
+                   class="flex-1 p-3 bg-gray-700 rounded-lg sm:rounded-xl focus:border-blue-500 focus:outline-none text-sm sm:text-base border border-gray-600 text-gray-100"
+                   data-autofocus>
+            <button type="submit" name="scan_qr" 
+                    class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:bg-blue-800 px-6 py-3 rounded-lg sm:rounded-xl font-semibold transition-colors touch-manipulation text-sm sm:text-base">
+                <i class="fas fa-search mr-2"></i>Suchen
+            </button>
+        </div>
+    </form>
+
+    <!-- My Borrowed Devices (Personal System) -->
+    {% if system_type == 'personal' and my_borrowed_devices and not devices_to_return %}
+    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-100">Meine ausgeliehenen Geräte:</h2>
+        <div class="space-y-3">
+            {% for device in my_borrowed_devices %}
+            <div class="bg-gray-700 p-3 sm:p-4 rounded-lg border border-gray-600">
+                <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
+                    <div class="flex-1 w-full sm:w-auto min-w-0">
+                        <p class="font-semibold text-base sm:text-lg text-gray-100 truncate mb-1">{{ device[1] }}</p>
+                        <div class="space-y-0.5 text-xs sm:text-sm">
+                            <p class="text-gray-400 truncate">
+                                <i class="fas fa-barcode mr-1 text-blue-400"></i>
+                                Barcode: {{ device[2] }}
+                            </p>
+                            <p class="text-gray-400 truncate">
+                                <i class="fas fa-hashtag mr-1 text-green-400"></i>
+                                Ausleih-ID: {{ device[3] }}
+                            </p>
+                            <p class="text-gray-500">
+                                <i class="fas fa-clock mr-1 text-purple-400"></i>
+                                Ausgeliehen am: {{ device[4] }}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="/return?qr={{ device[3] }}" 
+                       class="w-full sm:w-auto text-center bg-green-600 hover:bg-green-700 active:bg-green-800 px-4 py-2 rounded-lg font-semibold transition-colors touch-manipulation text-sm sm:text-base whitespace-nowrap">
+                        <i class="fas fa-undo mr-2"></i>Zurückgeben
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Devices to Return -->
+    {% if devices_to_return %}
+    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-100">Geräte zur Rückgabe:</h2>
+        <form method="POST">
+            <input type="hidden" name="ausleih_id" value="{{ devices_to_return[0][3] }}">
+            
+            <!-- Device Checkboxes -->
+            <div class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                {% for device in devices_to_return %}
+                <label class="flex items-start sm:items-center bg-gray-700 p-3 sm:p-4 rounded-lg border border-gray-600 cursor-pointer hover:bg-gray-600 transition-colors touch-manipulation">
+                    <input type="checkbox" name="return_devices" value="{{ device[0] }}" 
+                           class="mr-3 mt-0.5 sm:mt-0 w-5 h-5 flex-shrink-0 rounded border-gray-500 bg-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" 
+                           checked>
+                    <div class="flex-1 min-w-0">
+                        <span class="font-medium text-gray-100 text-sm sm:text-base block truncate">{{ device[1] }}</span>
+                        <span class="text-xs sm:text-sm text-gray-400 block truncate">({{ device[2] }})</span>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            
+            <!-- Complete Return Button -->
+            <button type="submit" name="complete_return" 
+                    class="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 p-3 sm:p-4 rounded-lg sm:rounded-xl font-semibold transition-colors touch-manipulation text-sm sm:text-base">
+                <i class="fas fa-check mr-2"></i>Rückgabe abschließen
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <a href="/lager/{{ session.current_lager }}" 
+       class="block text-center text-gray-400 hover:text-white active:text-gray-300 transition-colors py-3 touch-manipulation text-sm sm:text-base">
+        <i class="fas fa-arrow-left mr-2"></i>Zurück
+    </a>
+</div>
+
+<style>
+    /* Mobile viewport optimization */
+    @media (max-width: 640px) {
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+        
+        .max-w-7xl {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        
+        /* Better touch targets */
+        .touch-manipulation {
+            min-height: 44px;
+        }
+    }
+    
+    /* Touch optimizations */
+    .touch-manipulation {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Prevent zoom */
+    a, button, input {
+        touch-action: manipulation;
+    }
+    
+    /* Text truncation */
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Input font size to prevent zoom on iOS */
+    @media (max-width: 640px) {
+        input, select, textarea {
+            font-size: 16px;
+        }
+    }
+    
+    /* Custom checkbox styling */
+    input[type="checkbox"] {
+        cursor: pointer;
+    }
+    
+    input[type="checkbox"]:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+    }
+</style>
+
+{% endblock %}
