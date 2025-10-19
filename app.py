@@ -15,20 +15,19 @@ from docx import Document
 from docx.shared import Inches, Pt, Cm
 from io import BytesIO
 import json
-import re # Import re for regex operations
+import re
 from docx.oxml import parse_xml
 from docx.oxml.ns import qn
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-# ReportLab imports for PDF generation
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-from PIL import Image as PILImage # Pillow for image handling
+from PIL import Image as PILImage
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -202,12 +201,11 @@ def devices():
     art_filters = [f for f in request.args.getlist('art') if f]
     klasse_filters = [f for f in request.args.getlist('klasse') if f]
     sort_by = request.args.get('sort_by', 'name')
-    group_by = request.args.get('group_by', 'none')  # Added grouping option
+    group_by = request.args.get('group_by', 'none')  
     
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
     
-    # Build query with filters
     query = """SELECT g.* FROM geraete g
                LEFT JOIN ausleih_details ad ON g.id = ad.geraet_id
                LEFT JOIN ausleihen a ON ad.ausleih_id = a.ausleih_id AND a.status = 'ausgeliehen'
@@ -237,14 +235,14 @@ def devices():
         query += f" AND a.klasse IN ({placeholders})"
         params.extend(klasse_filters)
     
-    # Handle sorting
+
     if sort_by == 'instrumentenart':
         query += " ORDER BY g.instrumentenart, g.name"
     elif sort_by == 'lagerplatz':
         query += " ORDER BY g.lagerplatz, g.name"
     elif sort_by == 'status':
         query += " ORDER BY g.status, g.name"
-    elif sort_by == 'model':  # Added model sorting
+    elif sort_by == 'model':
         query += " ORDER BY g.modell, g.name"
     else:
         query += " ORDER BY g.name"
@@ -255,7 +253,7 @@ def devices():
     grouped_devices = {}
     if group_by == 'model':
         for device in devices_list:
-            model = device[7] or 'Unbekanntes Modell'  # modell is at index 7
+            model = device[7] or 'Unbekanntes Modell'
             if model not in grouped_devices:
                 grouped_devices[model] = []
             grouped_devices[model].append(device)
@@ -267,14 +265,14 @@ def devices():
             grouped_devices[instrument].append(device)
     elif group_by == 'serial':
         for device in devices_list:
-            serial = device[6] or ''  # seriennummer is at index 6
+            serial = device[6] or ''  
             first_letter = serial[0].upper() if serial else 'Unbekannt'
             if first_letter not in grouped_devices:
                 grouped_devices[first_letter] = []
             grouped_devices[first_letter].append(device)
     elif group_by == 'instrument':
         for device in devices_list:
-            instrument = device[8] or 'Unbekanntes Instrument'  # instrumentenart is at index 8
+            instrument = device[8] or 'Unbekanntes Instrument'  
             if instrument not in grouped_devices:
                 grouped_devices[instrument] = []
             grouped_devices[instrument].append(device)
@@ -285,10 +283,8 @@ def devices():
                 grouped_devices[status] = []
             grouped_devices[status].append(device)
     else:
-        # No grouping - put all devices in one group
         grouped_devices['Alle Geräte'] = devices_list
     
-    # Get filter options
     c.execute("SELECT DISTINCT instrumentenart FROM geraete WHERE instrumentenart IS NOT NULL")
     instrumentenarten = [row[0] for row in c.fetchall()]
     c.execute("SELECT DISTINCT klasse FROM ausleihen WHERE klasse IS NOT NULL")
@@ -319,7 +315,6 @@ def add_device():
         conn = get_db_connection(session['current_lager'])
         c = conn.cursor()
         
-        # Generate unique barcode
         while True:
             barcode = generate_random_id(6)
             c.execute("SELECT id FROM geraete WHERE barcode = ?", (barcode,))
@@ -334,7 +329,6 @@ def add_device():
         conn.close()
         return redirect(url_for('devices'))
     
-    # Get existing instrument types for datalist
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
     c.execute("SELECT DISTINCT instrumentenart FROM geraete WHERE instrumentenart IS NOT NULL")
@@ -352,7 +346,6 @@ def edit_device(device_id):
     c = conn.cursor()
     
     if request.method == 'POST':
-        # Fetch current device data first to get current description
         c.execute("SELECT * FROM geraete WHERE id = ?", (device_id,))
         device = c.fetchone()
 
@@ -368,13 +361,11 @@ def edit_device(device_id):
         preis = request.form.get('preis', 0)
         defekt = request.form.get('defekt', 'off') == 'on'
 
-        # Check if barcode is unique (excluding current device)
         c.execute("SELECT id FROM geraete WHERE barcode = ? AND id != ?", (barcode, device_id))
         if c.fetchone():
             conn.close()
             return redirect(url_for('edit_device', device_id=device_id))
 
-        # Handle description logging
         current_beschreibung = device[5] or ''
         if new_beschreibung != current_beschreibung:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -395,22 +386,18 @@ def edit_device(device_id):
         conn.close()
         return redirect(url_for('devices'))
     
-    # Get device data and instrument types
     c.execute("SELECT * FROM geraete WHERE id = ?", (device_id,))
     device = c.fetchone()
     c.execute("SELECT DISTINCT instrumentenart FROM geraete WHERE instrumentenart IS NOT NULL")
     instrumentenarten = [row[0] for row in c.fetchall()]
     conn.close()
     
-    # Extract current description for editing (latest entry without timestamp)
     beschreibung = device[5] or ''
     current_description = ''
     if beschreibung:
-        # Split by double newline to get entries
         entries = beschreibung.split('\n\n')
         if entries:
             latest_entry = entries[0]
-            # Remove timestamp part [timestamp - user]
             if latest_entry.startswith('[') and ']' in latest_entry:
                 bracket_end = latest_entry.find(']') + 1
                 current_description = latest_entry[bracket_end:].strip()
@@ -543,7 +530,6 @@ def borrow_pdf(ausleih_id):
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
     
-    # Get borrow info
     c.execute("""SELECT a.ausleih_id, a.mitarbeiter_name, a.datum, a.email, a.klasse
                  FROM ausleihen a
                  WHERE a.ausleih_id = ?""", (ausleih_id,))
@@ -553,7 +539,6 @@ def borrow_pdf(ausleih_id):
         conn.close()
         return redirect(url_for('dashboard'))
     
-    # Get devices with full details
     c.execute("""SELECT g.id, g.name, g.barcode, g.modell, g.preis
                  FROM ausleih_details ad
                  JOIN geraete g ON ad.geraet_id = g.id
@@ -595,7 +580,6 @@ def borrow_pdf(ausleih_id):
         grouped_devices[base_name]['count'] += 1
         grouped_devices[base_name]['total_price'] += (preis or 0)
         
-        # Check for image
         if not grouped_devices[base_name]['image_path']:
             for ext in ['.jpg', '.png', '.jpeg']:
                 img_path = f'images/{device_id}{ext}'
@@ -606,7 +590,6 @@ def borrow_pdf(ausleih_id):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
     
-    # Styles
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -625,14 +608,12 @@ def borrow_pdf(ausleih_id):
         spaceAfter=10
     )
     
-    # Build PDF content
     elements = []
     
-    # Title
     elements.append(Paragraph(f"Ausleihe-Übersicht", title_style))
     elements.append(Spacer(1, 0.5*cm))
     
-    # Borrow info
+
     info_text = f"""
     <b>Ausleihe-ID:</b> {borrow_info[0]}<br/>
     <b>Ausgeliehen an:</b> {borrow_info[1]}<br/>
@@ -646,14 +627,12 @@ def borrow_pdf(ausleih_id):
     elements.append(Paragraph(info_text, header_style))
     elements.append(Spacer(1, 1*cm))
     
-    # Items table
     table_data = [['', 'Artikel', 'Menge', 'Preis/St.', 'Gesamt']]
     
     total_sum = 0
     for group_name, group_data in sorted(grouped_devices.items()):
         row = []
         
-        # Image column
         if group_data['image_path']:
             try:
                 img = RLImage(group_data['image_path'], width=2*cm, height=2*cm)
@@ -663,29 +642,23 @@ def borrow_pdf(ausleih_id):
         else:
             row.append('')
         
-        # Name column with model
         name_text = f"<b>{group_data['name']}</b>"
         if group_data['model']:
             name_text += f"<br/><font size=8 color='#666666'>{group_data['model']}</font>"
         row.append(Paragraph(name_text, styles['Normal']))
         
-        # Quantity
         row.append(str(group_data['count']))
         
-        # Price per item
         avg_price = group_data['total_price'] / group_data['count'] if group_data['count'] > 0 else 0
         row.append(f"{avg_price:.2f} €")
-        
-        # Total
+
         row.append(f"{group_data['total_price']:.2f} €")
         
         table_data.append(row)
         total_sum += group_data['total_price']
-    
-    # Total row
+
     table_data.append(['', Paragraph('<b>Summe</b>', styles['Normal']), '', '', f"{total_sum:.2f} €"])
-    
-    # Create table
+
     table = Table(table_data, colWidths=[3*cm, 8*cm, 2*cm, 3*cm, 3*cm])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
@@ -798,12 +771,11 @@ def inventory():
     art_filters = [f for f in request.args.getlist('art') if f]
     klasse_filters = [f for f in request.args.getlist('klasse') if f]
     sort_by = request.args.get('sort_by', 'name')
-    group_by = request.args.get('group_by', 'none')  # Added grouping to inventory
+    group_by = request.args.get('group_by', 'none') 
     
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
-    
-    # Build query similar to devices but with borrow info
+
     query = """SELECT g.*, a.mitarbeiter_name, a.zielort, a.datum, a.email, a.klasse
                FROM geraete g
                LEFT JOIN ausleih_details ad ON g.id = ad.geraet_id
@@ -833,15 +805,14 @@ def inventory():
         placeholders = ','.join('?' for _ in klasse_filters)
         query += f" AND a.klasse IN ({placeholders})"
         params.extend(klasse_filters)
-    
-    # Handle sorting
+
     if sort_by == 'instrumentenart':
         query += " ORDER BY g.instrumentenart, g.name"
     elif sort_by == 'lagerplatz':
         query += " ORDER BY g.lagerplatz, g.name"
     elif sort_by == 'status':
         query += " ORDER BY g.status, g.name"
-    elif sort_by == 'model':  # Added model sorting
+    elif sort_by == 'model':
         query += " ORDER BY g.modell, g.name"
     else:
         query += " ORDER BY g.name"
@@ -883,8 +854,7 @@ def inventory():
             grouped_devices[status].append(device)
     else:
         grouped_devices['Alle Geräte'] = devices_list
-    
-    # Get filter options
+
     c.execute("SELECT DISTINCT instrumentenart FROM geraete WHERE instrumentenart IS NOT NULL")
     instrumentenarten = [row[0] for row in c.fetchall()]
     c.execute("SELECT DISTINCT klasse FROM ausleihen WHERE klasse IS NOT NULL")
@@ -984,7 +954,6 @@ def export():
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
     
-    # Build query with filters (similar to devices/inventory)
     query = """SELECT g.*, a.mitarbeiter_name, a.zielort, a.datum, a.email, a.klasse
                FROM geraete g
                LEFT JOIN ausleih_details ad ON g.id = ad.geraet_id
@@ -1067,44 +1036,36 @@ def export():
                         as_attachment=True, download_name='export.docx')
     
     elif format_type == 'pdf_labels':
-        # Get the default label layout
         conn_layout = get_db_connection(session['current_lager'])
         c_layout = conn_layout.cursor()
         c_layout.execute("SELECT layout_data FROM label_layouts WHERE is_default = 1 LIMIT 1")
         layout_result = c_layout.fetchone()
         
         if not layout_result:
-            # If no default layout, get the first available layout
             c_layout.execute("SELECT layout_data FROM label_layouts ORDER BY created_at DESC LIMIT 1")
             layout_result = c_layout.fetchone()
         
         conn_layout.close()
         
         if not layout_result:
-            # If no layouts exist, return error
             return send_file(io.BytesIO(b'Kein Label-Layout gefunden. Bitte erstellen Sie zuerst ein Label-Layout.'), 
                         mimetype='text/plain', as_attachment=True, download_name='error.txt')
         
         layout_data = json.loads(layout_result[0])
-        
-        # Get label dimensions from layout (in mm)
+
         label_width_mm = float(layout_data.get('labelWidth', 50))
         label_height_mm = float(layout_data.get('labelHeight', 30))
-        
-        # Convert mm to points (1 mm = 2.834645669 points)
+
         mm_to_pt = 2.834645669
         label_width_pt = label_width_mm * mm_to_pt
         label_height_pt = label_height_mm * mm_to_pt
-        
-        # A4 page dimensions in points
+
         page_width, page_height = A4
         margin = 0.5 * cm
-        
-        # Calculate usable area
+
         usable_width = page_width - 2 * margin
         usable_height = page_height - 2 * margin
-        
-        # Calculate labels per page
+
         labels_per_row = max(1, int(usable_width / label_width_pt))
         labels_per_col = max(1, int(usable_height / label_height_pt))
         labels_per_page = labels_per_row * labels_per_col
@@ -1151,7 +1112,6 @@ def export():
             from reportlab.platypus import Image as RLImage
             from io import BytesIO
             
-            # Create QR code instance with optimized settings
             qr = qrcode.QRCode(
                 version=1,  # Controls size (1 is smallest)
                 error_correction=qrcode.constants.ERROR_CORRECT_L,  # ~7% error correction
@@ -1159,19 +1119,15 @@ def export():
                 border=1,  # Border size in boxes (minimum is 4 for spec compliance, but 1 works)
             )
             
-            # Add data and generate QR code
             qr.add_data(str(data))
             qr.make(fit=True)
             
-            # Create PIL image
             pil_img = qr.make_image(fill_color="black", back_color="white")
             
-            # Save PIL image to BytesIO buffer
             img_buffer = BytesIO()
             pil_img.save(img_buffer, format='PNG')
             img_buffer.seek(0)
-            
-            # Create and return ReportLab Image object
+
             return RLImage(img_buffer, width=width_pt, height=height_pt)
         
         def calculate_font_size(text, max_width_pt, max_height_pt, initial_font_size):
@@ -1181,11 +1137,9 @@ def export():
             font_size = initial_font_size
             min_font_size = 6
             
-            # Try decreasing font size until text fits
             while font_size >= min_font_size:
                 text_width = stringWidth(str(text), 'Helvetica', font_size)
                 
-                # Check if text fits with some padding
                 if text_width <= (max_width_pt - 4):  # 4pt padding
                     return font_size
                 
@@ -1217,15 +1171,14 @@ def export():
                 
                 # Convert to points and adjust for label position
                 field_x_pt = x + (field_x_px * px_to_pt)
-                # Y coordinate needs to be flipped (PDF origin is bottom-left)
+                # Y coordinate needs to be flipped (PDF origin is bottom-left what a shit)
                 field_y_pt = y + height - (field_y_px * px_to_pt) - (field_height_px * px_to_pt)
                 field_width_pt = field_width_px * px_to_pt
                 field_height_pt = field_height_px * px_to_pt
                 
                 if field_type == 'qr':
-                    # Generate and draw QR code with device barcode
                     try:
-                        qr_data = device[2]  # Use barcode
+                        qr_data = device[2]  # barcode
                         qr_img = create_qr_code_image(qr_data, field_width_pt, field_height_pt)
                         qr_img.drawOn(canvas, field_x_pt, field_y_pt)
                     except Exception as e:
@@ -1235,12 +1188,10 @@ def export():
                     # Handle text fields
                     field_value = get_field_value(device, field_type)
                     
-                    # Get custom text if it's a text field
                     if field_type == 'text':
                         field_value = field.get('text', 'Text')
                     
                     if field_value:
-                        # Parse font size
                         font_size_raw = field.get('fontSize', '12px')
                         initial_font_size = 12
                         
@@ -1267,14 +1218,12 @@ def export():
                         # Get text alignment
                         text_align = field.get('textAlign', 'left')
                         
-                        # Calculate text position based on alignment
-                        text_x = field_x_pt + 2  # Small padding
+                        text_x = field_x_pt + 2 
                         if text_align == 'center':
                             text_x = field_x_pt + field_width_pt / 2
                         elif text_align == 'right':
                             text_x = field_x_pt + field_width_pt - 2
                         
-                        # Draw text (centered vertically in field)
                         text_y = field_y_pt + (field_height_pt / 2) - (font_size / 3)
                         
                         try:
@@ -1287,34 +1236,27 @@ def export():
                         except Exception as e:
                             print(f"[v0] Error drawing text: {e}")
         
-        # Create PDF with labels
         from reportlab.pdfgen import canvas as pdfcanvas
         
-        # Use low-level canvas for precise positioning
         pdf_canvas = pdfcanvas.Canvas(buffer, pagesize=A4)
         
         device_count = 0
         for device in devices_list:
-            # Calculate position in grid
             label_index = device_count % labels_per_page
             
             row = label_index // labels_per_row
             col = label_index % labels_per_row
             
-            # Calculate label position (from bottom-left)
             label_x = margin + (col * label_width_pt)
             label_y = page_height - margin - ((row + 1) * label_height_pt)
             
-            # Draw the label
             create_single_label(device, pdf_canvas, label_x, label_y, label_width_pt, label_height_pt)
             
             device_count += 1
-            
-            # Start new page if needed
+
             if device_count % labels_per_page == 0 and device_count < len(devices_list):
                 pdf_canvas.showPage()
         
-        # Save PDF
         pdf_canvas.save()
         buffer.seek(0)
         
