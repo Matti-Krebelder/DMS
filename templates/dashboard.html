@@ -6,6 +6,12 @@
     <div class="text-center mb-6 sm:mb-8">
         <h1 class="text-2xl sm:text-4xl font-bold mb-1">Hallo {{ session.user_name }}</h1>
         <p class="text-xs sm:text-sm text-gray-500">ID: {{ session.user_id }}</p>
+        {% if update_available %}
+        <div class="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <p class="text-yellow-400 text-sm">Version {{ current_version }} ist veraltet. Aktuelle Version: {{ latest_version }}</p>
+            <a href="/update" class="inline-block mt-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg transition-colors">Jetzt aktualisieren</a>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Compact Action Cards -->
