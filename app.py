@@ -34,7 +34,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "2.4"
+VERSION = "2.5"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
@@ -211,6 +211,17 @@ def warehouse(lager_id):
         return redirect(url_for('login'))
     if not os.path.exists(f'{lager_id}.db'):
         return redirect(url_for('dashboard'))
+
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("SELECT id FROM lager WHERE id = ? AND (created_by = ? OR access_users LIKE ?)",
+              (lager_id, session['user_id'], f"%{session['user_id']}%"))
+    has_access = c.fetchone()
+    conn.close()
+
+    if not has_access:
+        return redirect(url_for('dashboard'))
+
     session['current_lager'] = lager_id
     return render_template('warehouse.html', title="Lager", lager_id=lager_id)
 
