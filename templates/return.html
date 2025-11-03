@@ -97,7 +97,6 @@
 </div>
 
 <style>
-    /* Mobile viewport optimization */
     @media (max-width: 640px) {
         body {
             min-height: 100vh;
@@ -109,39 +108,33 @@
             padding-bottom: 1rem !important;
         }
         
-        /* Better touch targets */
         .touch-manipulation {
             min-height: 44px;
         }
     }
-    
-    /* Touch optimizations */
+
     .touch-manipulation {
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         -webkit-touch-callout: none;
         user-select: none;
     }
-    
-    /* Prevent zoom */
+
     a, button, input {
         touch-action: manipulation;
     }
     
-    /* Text truncation */
     .truncate {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     
-    /* Input font size to prevent zoom on iOS */
     @media (max-width: 640px) {
         input, select, textarea {
             font-size: 16px;
         }
     }
-    
-    /* Custom checkbox styling */
+
     input[type="checkbox"] {
         cursor: pointer;
     }
