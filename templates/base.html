@@ -71,7 +71,6 @@
         }
     </script>
     <style>
-        /* Custom scrollbar and modern styling */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -157,7 +156,6 @@
     </div>
 
     <script>
-        // Filter persistence in localStorage with URL synchronization
         const STORAGE_KEY = 'warehouse_filters';
         
         function saveFilters() {
@@ -173,14 +171,12 @@
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
             
-            // Update URL without page reload for better bookmarking
             updateURL(filters);
         }
         
         function updateURL(filters) {
             const url = new URL(window.location);
             
-            // Clear existing filter params
             url.searchParams.delete('search');
             url.searchParams.delete('status');
             url.searchParams.delete('art');
@@ -188,7 +184,6 @@
             url.searchParams.delete('sort_by');
             url.searchParams.delete('group_by');
             
-            // Add current filter params
             if (filters.search) url.searchParams.set('search', filters.search);
             if (filters.status) url.searchParams.set('status', filters.status);
             if (filters.art) url.searchParams.set('art', filters.art);
@@ -196,7 +191,6 @@
             if (filters.sort_by && filters.sort_by !== 'name') url.searchParams.set('sort_by', filters.sort_by);
             if (filters.group_by && filters.group_by !== 'none') url.searchParams.set('group_by', filters.group_by);
             
-            // Update URL without triggering page reload
             window.history.replaceState({}, '', url.toString());
         }
         
@@ -204,7 +198,6 @@
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const filters = JSON.parse(saved);
-                // Only load filters if they're for the same path and not too old (1 hour)
                 if (filters.path === window.location.pathname && 
                     Date.now() - filters.timestamp < 3600000) {
                     
@@ -215,7 +208,6 @@
                     if (document.getElementById('sort-select')) document.getElementById('sort-select').value = filters.sort_by;
                     if (document.getElementById('group-select')) document.getElementById('group-select').value = filters.group_by;
                     
-                    // Trigger search if filters were loaded and not already in URL
                     const urlParams = new URLSearchParams(window.location.search);
                     if (!urlParams.has('search') && !urlParams.has('status') && 
                         (filters.search || filters.status || filters.art || filters.klasse)) {
@@ -240,13 +232,11 @@
             const autoFocus = document.querySelector('[data-autofocus]');
             if (autoFocus) autoFocus.focus();
             
-            // Load filters from URL first, then from localStorage if URL is empty
             loadFiltersFromURL();
             if (!window.location.search) {
                 loadFilters();
             }
             
-            // Add event listeners for filter persistence
             const searchInput = document.getElementById('search-input');
             const statusSelect = document.getElementById('status-select');
             const artSelect = document.getElementById('art-select');
@@ -261,7 +251,6 @@
             if (sortSelect) sortSelect.addEventListener('change', liveSearch);
             if (groupSelect) groupSelect.addEventListener('change', handleGroupChange);
             
-            // Add fade-in animation to cards
             const cards = document.querySelectorAll('.device-card, .group-card');
             cards.forEach((card, index) => {
                 card.style.animationDelay = `${index * 50}ms`;
@@ -271,7 +260,6 @@
         
         function handleGroupChange() {
             saveFilters();
-            // For grouping changes, we need a full page reload to rebuild the grouped structure
             const currentUrl = new URL(window.location);
             const groupBy = document.getElementById('group-select').value;
             currentUrl.searchParams.set('group_by', groupBy);
@@ -325,7 +313,7 @@
             const sort_by = sortSelect?.value || 'name';
             const group_by = groupSelect?.value || 'none';
 
-            // Save filters
+
             saveFilters();
 
             const params = new URLSearchParams();
@@ -351,14 +339,12 @@
                 if (newDeviceList) {
                     deviceList.innerHTML = newDeviceList.innerHTML;
                     
-                    // Re-apply animations
                     const cards = deviceList.querySelectorAll('.device-card, .group-card');
                     cards.forEach((card, index) => {
                         card.style.animationDelay = `${index * 30}ms`;
                         card.classList.add('animate-fade-in');
                     });
                     
-                    // Restore group states after live search
                     setTimeout(loadGroupStates, 50);
                 }
             } catch (error) {
@@ -388,7 +374,6 @@
             if (document.getElementById('sort-select')) document.getElementById('sort-select').value = 'name';
             if (document.getElementById('group-select')) document.getElementById('group-select').value = 'none';
             
-            // Clear saved filters and URL
             localStorage.removeItem(STORAGE_KEY);
             const url = new URL(window.location);
             url.search = '';
@@ -396,8 +381,6 @@
             
             liveSearch();
         }
-        
-        // Group toggle functionality with persistence
         function toggleGroup(groupId) {
             const content = document.getElementById(`group-content-${groupId}`);
             const icon = document.getElementById(`group-icon-${groupId}`);
@@ -415,7 +398,6 @@
             }
         }
         
-        // Load group states with improved persistence
         function loadGroupStates() {
             document.querySelectorAll('[id^="group-content-"]').forEach(content => {
                 const groupId = content.id.replace('group-content-', '');
@@ -431,12 +413,10 @@
             });
         }
         
-        // Load group states after DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(loadGroupStates, 100);
         });
-        
-        // Handle browser back/forward buttons
+
         window.addEventListener('popstate', function(event) {
             loadFiltersFromURL();
             liveSearch();
