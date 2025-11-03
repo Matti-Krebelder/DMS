@@ -34,7 +34,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "2.4"
+VERSION = "2.1"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
@@ -1469,6 +1469,10 @@ def update():
 
             if os.path.exists('DMS-main'):
                 shutil.rmtree('DMS-main')
+
+            nested_templates = os.path.join('templates', 'templates')
+            if os.path.exists(nested_templates):
+                shutil.rmtree(nested_templates)
 
         else:
             return "Fehler beim Aktualisieren der Templates", 500
