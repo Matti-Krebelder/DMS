@@ -1113,7 +1113,7 @@ def export():
             from io import BytesIO
             
             qr = qrcode.QRCode(
-                version=1,  # Controls size (1 is smallest)
+                version=1, 
                 error_correction=qrcode.constants.ERROR_CORRECT_L,  # ~7% error correction
                 box_size=10,  # Size of each box in pixels
                 border=1,  # Border size in boxes (minimum is 4 for spec compliance, but 1 works)
@@ -1150,15 +1150,12 @@ def export():
         def create_single_label(device, canvas, x, y, width, height):
             """Draw a single label at the specified position"""
             
-            # Draw border around label
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.rect(x, y, width, height)
             
-            # Get fields from layout
             fields = layout_data.get('fields', [])
             
-            # Convert pixel positions to points (assuming 96 DPI from label editor)
             # 1 pixel at 96 DPI = 0.75 points
             px_to_pt = 0.75
             
@@ -1169,23 +1166,20 @@ def export():
                 field_width_px = field.get('width', 100)
                 field_height_px = field.get('height', 20)
                 
-                # Convert to points and adjust for label position
                 field_x_pt = x + (field_x_px * px_to_pt)
-                # Y coordinate needs to be flipped (PDF origin is bottom-left what a shit)
                 field_y_pt = y + height - (field_y_px * px_to_pt) - (field_height_px * px_to_pt)
                 field_width_pt = field_width_px * px_to_pt
                 field_height_pt = field_height_px * px_to_pt
                 
                 if field_type == 'qr':
                     try:
-                        qr_data = device[2]  # barcode
+                        qr_data = device[2]
                         qr_img = create_qr_code_image(qr_data, field_width_pt, field_height_pt)
                         qr_img.drawOn(canvas, field_x_pt, field_y_pt)
                     except Exception as e:
                         print(f"[v0] Error generating QR code: {e}")
                     
                 else:
-                    # Handle text fields
                     field_value = get_field_value(device, field_type)
                     
                     if field_type == 'text':
@@ -1204,18 +1198,15 @@ def export():
                         
                         initial_font_size = max(6, min(initial_font_size, 24))
                         
-                        # Calculate appropriate font size for text to fit
                         font_size = calculate_font_size(str(field_value), field_width_pt, field_height_pt, initial_font_size)
                         
-                        # Set font
                         font_weight = field.get('fontWeight', 'normal')
                         font_name = 'Helvetica-Bold' if font_weight == 'bold' else 'Helvetica'
                         canvas.setFont(font_name, font_size)
                         
-                        # Set text color
+
                         canvas.setFillColor(colors.black)
                         
-                        # Get text alignment
                         text_align = field.get('textAlign', 'left')
                         
                         text_x = field_x_pt + 2 
