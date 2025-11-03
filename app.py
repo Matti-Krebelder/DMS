@@ -28,10 +28,33 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from PIL import Image as PILImage
+import requests
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
+
+VERSION = "2.1"
+LATEST_VERSION = None
+UPDATE_AVAILABLE = False
+
+def check_version():
+    global LATEST_VERSION, UPDATE_AVAILABLE
+    try:
+        response = requests.get("https://raw.githubusercontent.com/Matti-Krebelder/DMS/refs/heads/main/version.txt", timeout=5)
+        if response.status_code == 200:
+            latest_version = response.text.strip()
+            LATEST_VERSION = latest_version
+            if latest_version != VERSION:
+                UPDATE_AVAILABLE = True
+                print(f"Version {VERSION} ist veraltet. Aktuelle Version: {latest_version}")
+            else:
+                UPDATE_AVAILABLE = False
+                print(f"Version {VERSION} ist aktuell.")
+        else:
+            print("Fehler beim Abrufen der Version.")
+    except Exception as e:
+        print(f"Fehler beim Überprüfen der Version: {e}")
 
 def init_user_db():
     conn = sqlite3.connect('users.db')
@@ -39,7 +62,7 @@ def init_user_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (id TEXT PRIMARY KEY, name TEXT NOT NULL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS lager
-                 (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_by TEXT, 
+                 (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_by TEXT,
                    access_users TEXT, system_type DEFAULT 'personal')''')
     c.execute("INSERT OR IGNORE INTO users VALUES ('CKS.EXampleid', 'Matti')")
     c.execute("INSERT OR IGNORE INTO users VALUES ('CKS-Example', 'Hubert')")
@@ -150,11 +173,11 @@ def dashboard():
         return redirect(url_for('login'))
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute("SELECT id, name FROM lager WHERE created_by = ? OR access_users LIKE ?", 
+    c.execute("SELECT id, name FROM lager WHERE created_by = ? OR access_users LIKE ?",
               (session['user_id'], f"%{session['user_id']}%"))
     lagers = c.fetchall()
     conn.close()
-    return render_template('dashboard.html', title="Dashboard", lagers=lagers)
+    return render_template('dashboard.html', title="Dashboard", lagers=lagers, update_available=UPDATE_AVAILABLE, latest_version=LATEST_VERSION, current_version=VERSION)
 
 @app.route('/create_lager', methods=['GET', 'POST'])
 def create_lager():
@@ -549,7 +572,6 @@ def borrow_pdf(ausleih_id):
     
     def get_base_name(name):
         """Extract base name without trailing numbers"""
-        # Remove trailing numbers like "hero spot 1" -> "hero spot"
         match = re.match(r'^(.*?)\s*\d*$', name.strip())
         if match:
             base = match.group(1).strip()
@@ -680,7 +702,6 @@ def borrow_pdf(ausleih_id):
     
     elements.append(table)
     
-    # Build PDF
     doc.build(elements)
     buffer.seek(0)
     
@@ -835,7 +856,7 @@ def inventory():
             grouped_devices[instrument].append(device)
     elif group_by == 'serial':
         for device in devices_list:
-            serial = device[6] or ''  # seriennummer is at index 6
+            serial = device[6] or ''
             first_letter = serial[0].upper() if serial else 'Unbekannt'
             if first_letter not in grouped_devices:
                 grouped_devices[first_letter] = []
@@ -1114,9 +1135,9 @@ def export():
             
             qr = qrcode.QRCode(
                 version=1, 
-                error_correction=qrcode.constants.ERROR_CORRECT_L,  # ~7% error correction
-                box_size=10,  # Size of each box in pixels
-                border=1,  # Border size in boxes (minimum is 4 for spec compliance, but 1 works)
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=1,
             )
             
             qr.add_data(str(data))
@@ -1140,7 +1161,7 @@ def export():
             while font_size >= min_font_size:
                 text_width = stringWidth(str(text), 'Helvetica', font_size)
                 
-                if text_width <= (max_width_pt - 4):  # 4pt padding
+                if text_width <= (max_width_pt - 4):
                     return font_size
                 
                 font_size -= 1
@@ -1156,7 +1177,6 @@ def export():
             
             fields = layout_data.get('fields', [])
             
-            # 1 pixel at 96 DPI = 0.75 points
             px_to_pt = 0.75
             
             for field in fields:
@@ -1412,6 +1432,51 @@ def info():
                          device_info=device_info, borrow_info=borrow_info,
                          searched=searched, searched_code=searched_code)
 
+@app.route('/update')
+def update():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    try:
+        response = requests.get("https://raw.githubusercontent.com/Matti-Krebelder/DMS/main/app.py")
+        if response.status_code == 200:
+            with open('app.py', 'w', encoding='utf-8') as f:
+                f.write(response.text)
+        else:
+            return "Fehler beim Aktualisieren von app.py", 500
+
+        import zipfile
+        import tempfile
+        import shutil
+
+        response = requests.get("https://github.com/Matti-Krebelder/DMS/archive/refs/heads/main.zip")
+        if response.status_code == 200:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                tmp_file.write(response.content)
+                tmp_file_path = tmp_file.name
+
+            with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+                for file_info in zip_ref.filelist:
+                    if file_info.filename.startswith('DMS-main/templates/'):
+                        relative_path = file_info.filename.replace('DMS-main/', '', 1)
+                        if relative_path:
+                            zip_ref.extract(file_info, '.')
+                            extracted_path = file_info.filename
+                            target_path = relative_path
+                            if os.path.exists(extracted_path):
+                                shutil.move(extracted_path, target_path)
+
+            os.unlink(tmp_file_path)
+
+            if os.path.exists('DMS-main'):
+                shutil.rmtree('DMS-main')
+
+        else:
+            return "Fehler beim Aktualisieren der Templates", 500
+
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        return f"Fehler beim Update: {str(e)}", 500
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -1419,4 +1484,5 @@ def logout():
 
 if __name__ == '__main__':
     init_user_db()
+    check_version()
     app.run(debug=True, host='0.0.0.0', port=5000)
