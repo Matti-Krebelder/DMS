@@ -103,19 +103,16 @@
 
 <script>
 function toggleDropdown(labelId) {
-    // Close all other dropdowns
     document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
         if (dropdown.id !== `dropdown-${labelId}`) {
             dropdown.classList.add('hidden');
         }
     });
     
-    // Toggle current dropdown
     const dropdown = document.getElementById(`dropdown-${labelId}`);
     dropdown.classList.toggle('hidden');
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.closest('[onclick^="toggleDropdown"]')) {
         document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
