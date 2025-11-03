@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-         /* Custom scrollbar and modern styling */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -338,7 +337,6 @@
         let fieldCounter = 0;
         let currentLabelId = {{ label_id if label_id else 'null' }};
 
-        // Initialize drag and drop
         document.addEventListener('DOMContentLoaded', function() {
             initializeDragAndDrop();
             updateLabelSize();
@@ -485,7 +483,6 @@
                 <div class="resize-handle"></div>
             `;
 
-            // Add event listeners
             field.addEventListener('click', function(e) {
                 e.stopPropagation();
                 selectField(this);
@@ -508,7 +505,6 @@
             const height = document.getElementById('labelHeight').value;
             const canvas = document.getElementById('labelCanvas');
             
-            // Convert mm to pixels (assuming 96 DPI)
             const pixelWidth = (width * 96) / 25.4;
             const pixelHeight = (height * 96) / 25.4;
             
@@ -525,16 +521,13 @@
         }
 
         function selectField(field) {
-            // Remove selection from other fields
             document.querySelectorAll('.field-element').forEach(f => {
                 f.classList.remove('selected');
             });
 
-            // Select this field
             field.classList.add('selected');
             selectedField = field;
 
-            // Show properties panel
             showProperties(field);
         }
 
@@ -542,7 +535,6 @@
             const panel = document.getElementById('propertiesPanel');
             panel.classList.remove('hidden');
 
-            // Populate properties based on field type
             const type = field.dataset.fieldType;
             const fontSize = parseInt(field.style.fontSize) || 12;
             const text = field.querySelector('div').textContent;
@@ -602,7 +594,6 @@
             let newX = (e.clientX - canvasRect.left) / zoom - startX;
             let newY = (e.clientY - canvasRect.top) / zoom - startY;
 
-            // Keep within bounds
             newX = Math.max(0, Math.min(newX, canvas.offsetWidth - selectedField.offsetWidth));
             newY = Math.max(0, Math.min(newY, canvas.offsetHeight - selectedField.offsetHeight));
 
@@ -701,15 +692,12 @@
         function loadLayoutFromData(layoutData) {
             if (!layoutData || !layoutData.labelWidth) return;
             
-            // Set label dimensions
             document.getElementById('labelWidth').value = layoutData.labelWidth;
             document.getElementById('labelHeight').value = layoutData.labelHeight;
             updateLabelSize();
             
-            // Clear existing fields
             document.querySelectorAll('.field-element').forEach(field => field.remove());
             
-            // Add saved fields
             if (layoutData.fields) {
                 layoutData.fields.forEach(fieldData => {
                     fieldCounter++;
@@ -732,7 +720,6 @@
                         <div class="resize-handle"></div>
                     `;
 
-                    // Add event listeners
                     field.addEventListener('click', function(e) {
                         e.stopPropagation();
                         selectField(this);
@@ -751,7 +738,6 @@
             }
         }
 
-        // Click outside to deselect
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.field-element') && !e.target.closest('#propertiesPanel')) {
                 document.querySelectorAll('.field-element').forEach(f => {
@@ -762,7 +748,6 @@
             }
         });
 
-        // Delete selected field with Delete key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Delete' && selectedField) {
                 deleteSelectedField();
