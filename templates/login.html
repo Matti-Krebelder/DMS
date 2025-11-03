@@ -4,7 +4,6 @@
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    /* Hide base content initially */
     .dms-main-page-content {
         opacity: 0;
         pointer-events: none;
@@ -16,7 +15,6 @@
         pointer-events: auto;
     }
     
-    /* Loading Animation Styles */
     .dms-loading-overlay {
         position: fixed;
         top: 0;
@@ -36,7 +34,7 @@
         position: relative;
     }
     
-    /* Animated background particles */
+
     .dms-particles {
         position: absolute;
         top: 0;
@@ -61,7 +59,7 @@
         50% { transform: translateY(-20px) translateX(10px); opacity: 1; }
     }
     
-    /* Main icon container */
+
     .dms-icon-container {
         position: relative;
         width: 120px;
@@ -91,7 +89,6 @@
         50% { text-shadow: 0 0 50px rgba(255, 255, 255, 0.6), 0 0 80px rgba(255, 255, 255, 0.2); }
     }
     
-    /* Rotating rings around icon */
     .dms-ring {
         position: absolute;
         border: 2px solid transparent !important;
@@ -143,7 +140,6 @@
         to { transform: translate(-50%, -50%) rotate(0deg); }
     }
     
-    /* Title styling */
     .dms-loading-title {
         font-size: 3.5rem !important;
         font-weight: 700 !important;
@@ -197,7 +193,6 @@
         to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Loading bar */
     .dms-loading-bar-container {
         width: 300px !important;
         height: 4px !important;
@@ -225,7 +220,6 @@
         100% { transform: translateX(300px); }
     }
     
-    /* Loading text */
     .dms-loading-text {
         color: rgba(255, 255, 255, 0.5) !important;
         font-size: 0.9rem !important;
@@ -241,7 +235,6 @@
         100% { opacity: 1; }
     }
     
-    /* Final expand animation */
     .dms-expand-overlay {
         position: fixed;
         top: 50%;
@@ -287,7 +280,6 @@
         display: none !important;
     }
     
-    /* Hide loading overlay when complete */
     .dms-loading-overlay.dms-hidden {
         opacity: 0;
         transition: opacity 0.5s ease;
@@ -295,7 +287,6 @@
     }
 </style>
 
-<!-- Loading Animation Overlay -->
 <div class="dms-loading-overlay" id="dmsLoadingOverlay">
     <div class="dms-particles" id="dmsParticles"></div>
     
@@ -318,10 +309,8 @@
     </div>
 </div>
 
-<!-- Expansion Effect Elements -->
 <div class="dms-expand-overlay" id="dmsExpandOverlay"></div>
 
-<!-- Original Page Content (Hidden Initially) -->
 <div class="dms-main-page-content" id="dmsMainPageContent">
     <div class="flex items-center justify-center min-h-screen">
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-96">
@@ -344,7 +333,6 @@
 </div>
 
 <script>
-// Create floating particles
 function createDMSParticles() {
     const particlesContainer = document.getElementById('dmsParticles');
     const particleCount = 50;
@@ -360,29 +348,24 @@ function createDMSParticles() {
     }
 }
 
-// Start loading sequence
 function startDMSLoadingSequence() {
     createDMSParticles();
     
-    // After 3.5 seconds, start the final animation
     setTimeout(() => {
         const loadingOverlay = document.getElementById('dmsLoadingOverlay');
         const expandOverlay = document.getElementById('dmsExpandOverlay');
         const mainPageContent = document.getElementById('dmsMainPageContent');
         
-        // Start expand animation (only circle, no icon)
         expandOverlay.classList.add('dms-active');
         
-        // Hide loading overlay earlier (after 300ms instead of 1000ms)
         setTimeout(() => {
             loadingOverlay.classList.add('dms-hidden');
         }, 300);
         
-        // Show main page content slightly later
+
         setTimeout(() => {
             mainPageContent.classList.add('dms-visible');
             
-            // Focus on the input field after animation
             setTimeout(() => {
                 const inputField = document.querySelector('input[name="user_id"]');
                 if (inputField) {
@@ -391,20 +374,17 @@ function startDMSLoadingSequence() {
             }, 300);
         }, 600);
         
-        // Clean up overlay after animation
         setTimeout(() => {
             expandOverlay.style.display = 'none';
-            // Remove loading overlay from DOM
             loadingOverlay.remove();
         }, 1500);
         
     }, 3500);
 }
 
-// Start when DOM is loaded
+
 document.addEventListener('DOMContentLoaded', startDMSLoadingSequence);
 
-// Keep the original form submission function if it exists
 function submitFormOnEnter(event, formId) {
     if (event.key === 'Enter') {
         event.preventDefault();
