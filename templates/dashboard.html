@@ -2,19 +2,12 @@
 
 {% block content %}
 <div class="px-4 sm:px-0 pb-4">
-    <!-- Compact Header -->
+
     <div class="text-center mb-6 sm:mb-8">
         <h1 class="text-2xl sm:text-4xl font-bold mb-1">Hallo {{ session.user_name }}</h1>
         <p class="text-xs sm:text-sm text-gray-500">ID: {{ session.user_id }}</p>
-        {% if update_available %}
-        <div class="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-            <p class="text-yellow-400 text-sm">Version {{ current_version }} ist veraltet. Aktuelle Version: {{ latest_version }}</p>
-            <a href="/update" class="inline-block mt-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg transition-colors">Jetzt aktualisieren</a>
-        </div>
-        {% endif %}
     </div>
     
-    <!-- Compact Action Cards -->
     <div class="grid grid-cols-2 gap-3 sm:gap-6 max-w-2xl mx-auto mb-6 sm:mb-10">
         <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
             <div class="flex flex-col items-center">
@@ -31,7 +24,6 @@
         </a>
     </div>
     
-    <!-- Compact Lager List -->
     <div>
         <h3 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-6 text-center">Meine Lager</h3>
         
@@ -55,7 +47,7 @@
         {% endif %}
     </div>
     
-    <!-- Compact Logout -->
+
     <div class="mt-6 sm:mt-10 text-center">
         <a href="/logout" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 touch-manipulation text-xs sm:text-base">
             <i class="fas fa-sign-out-alt mr-2 text-sm sm:text-base"></i>
@@ -68,7 +60,6 @@
     /* Mobile viewport optimization */
     @media (max-width: 640px) {
         body {
-            /* Account for mobile browser UI */
             min-height: 100vh;
             min-height: -webkit-fill-available;
         }
