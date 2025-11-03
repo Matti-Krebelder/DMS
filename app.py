@@ -1437,37 +1437,53 @@ def update():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     try:
-        # Download app.py
-        response = requests.get("https://raw.githubusercontent.com/Matti-Krebelder/DMS/main/app.py")
+        import zipfile
+        import tempfile
+        import shutil
+
+        # Get the repo zip
+        response = requests.get("https://github.com/Matti-Krebelder/DMS/archive/refs/heads/main.zip")
         if response.status_code == 200:
-            with open('app.py', 'w', encoding='utf-8') as f:
-                f.write(response.text)
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                tmp_file.write(response.content)
+                tmp_file_path = tmp_file.name
+
+            with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
+                # Extract app.py
+                app_py_info = zip_ref.getinfo('DMS-main/app.py')
+                if app_py_info:
+                    zip_ref.extract(app_py_info, '.')
+                    if os.path.exists('DMS-main/app.py'):
+                        shutil.move('DMS-main/app.py', 'app.py')
+
+                # Extract templates
+                for file_info in zip_ref.filelist:
+                    if file_info.filename.startswith('DMS-main/templates/'):
+                        relative_path = file_info.filename.replace('DMS-main/', '', 1)
+                        if relative_path:
+                            zip_ref.extract(file_info, '.')
+                            extracted_path = file_info.filename
+                            target_path = relative_path
+                            if os.path.exists(extracted_path):
+                                shutil.move(extracted_path, target_path)
+
+            os.unlink(tmp_file_path)
+
+            # Clean up extracted DMS-main folder if it exists
+            if os.path.exists('DMS-main'):
+                shutil.rmtree('DMS-main')
+
+            # Clean up nested templates folder if it exists
+            nested_templates = os.path.join('templates', 'templates')
+            if os.path.exists(nested_templates):
+                shutil.rmtree(nested_templates)
+
         else:
-            return "Fehler beim Aktualisieren von app.py", 500
-
-        # List of templates to download
-        templates = [
-            'login.html', 'dashboard.html', 'warehouse.html', 'devices.html',
-            'add_device.html', 'edit_device.html', 'borrow.html', 'borrow_success.html',
-            'return.html', 'inventory.html', 'manage_lager.html', 'edit_lager.html',
-            'create_lager.html', 'export.html', 'label_selection.html', 'label_layout.html',
-            'info.html'
-        ]
-
-        # Download each template
-        for template in templates:
-            response = requests.get(f"https://raw.githubusercontent.com/Matti-Krebelder/DMS/main/templates/{template}")
-            if response.status_code == 200:
-                with open(f'templates/{template}', 'w', encoding='utf-8') as f:
-                    f.write(response.text)
-
-        # Clean up nested templates folder if it exists
-        nested_templates = os.path.join('templates', 'templates')
-        if os.path.exists(nested_templates):
-            shutil.rmtree(nested_templates)
+            return "Fehler beim Aktualisieren", 500
 
         return redirect(url_for('dashboard'))
     except Exception as e:
+        return f"Fehler beim Update: {str(e)}", 500
 
 @app.route('/logout')
 def logout():
