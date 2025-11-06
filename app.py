@@ -1452,6 +1452,11 @@ def update():
         import tempfile
         import shutil
 
+        # Vor jedem Update: Prüfe und lösche verschachteltes templates-Verzeichnis
+        nested_templates = os.path.join('templates', 'templates')
+        if os.path.exists(nested_templates):
+            shutil.rmtree(nested_templates)
+
         response = requests.get("https://github.com/Matti-Krebelder/DMS/archive/refs/heads/main.zip")
         if response.status_code == 200:
             with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
