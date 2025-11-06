@@ -21,6 +21,55 @@
     {% endif %}
     {% endwith %}
 
+    <!-- Admin Actions Section -->
+    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Regenerate Missing Slips -->
+            <div class="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-redo text-blue-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-gray-100 text-sm sm:text-base mb-1">
+                            Alle fehlenden Scheine neu generieren
+                        </h3>
+                        <p class="text-xs sm:text-sm text-gray-400 mb-3">
+                            Generiere alle fehlenden Auslei-Scheine neu. 
+                        </p>
+                        <a href="/admin/regenerate_missing_slips" 
+                           class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation">
+                            <i class="fas fa-redo mr-2"></i>
+                            Fehlende Scheine regenerieren
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download All Slips -->
+            <div class="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-download text-green-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-gray-100 text-sm sm:text-base mb-1">
+                            Alle Scheine herunterladen
+                        </h3>
+                        <p class="text-xs sm:text-sm text-gray-400 mb-3">
+                            Lade alle Ausleihscheine als ZIP-Archiv herunter.
+                        </p>
+                        <a href="/admin/download_all_slips" 
+                           class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation">
+                            <i class="fas fa-download mr-2"></i>
+                            Alle Scheine herunterladen (ZIP)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Barcode Scanner Form -->
     <form method="POST" class="bg-gray-800 p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 border border-gray-700">
         <div class="flex flex-col gap-3 sm:gap-4">

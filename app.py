@@ -21,6 +21,8 @@ from docx.oxml.ns import qn
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import time
+import zipfile
+from pathlib import Path
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -35,7 +37,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "2.8"
+VERSION = "2.9"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
@@ -481,6 +483,18 @@ def delete_device(device_id):
     return redirect(url_for('devices'))
 
 
+@app.route('/admin/regenerate_missing_slips')
+def admin_regenerate_missing_slips():
+    if 'current_lager' not in session:
+        return redirect(url_for('dashboard'))
+    result = regenerate_missing_borrow_pdfs()
+    flash(result['message'], 'success' if result['success'] else 'error')
+    return redirect(url_for('borrow'))
+
+@app.route('/admin/download_all_slips')
+def admin_download_all_slips():
+    return get_all_borrows()
+
 @app.route('/borrow_success/<ausleih_id>')
 def borrow_success(ausleih_id):
     if 'current_lager' not in session:
@@ -525,6 +539,411 @@ def borrow_success(ausleih_id):
     return render_template('borrow_success.html', title="Ausleihe erfolgreich", 
                          borrow=borrow, devices=devices, system_type=system_type, 
                          generate_qr_code=generate_qr_code)
+
+
+@app.route('/regenerate_borrow_pdfs', methods=['POST'])
+def regenerate_borrow_pdfs_route():
+    """Route zum Regenerieren aller fehlenden Ausleih-PDFs"""
+    if 'current_lager' not in session:
+        return jsonify({'success': False, 'message': 'Kein Lager ausgewählt'})
+
+    try:
+        result = regenerate_missing_borrow_pdfs()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Fehler: {str(e)}'})
+
+
+def get_all_borrows():
+    """Generate a ZIP file containing all borrow PDFs from the folder"""
+    if 'current_lager' not in session:
+        return redirect(url_for('dashboard'))
+
+    lager_id = session['current_lager']
+    pdf_dir = ensure_borrow_pdfs_directory(lager_id)
+
+    # Alle PDF-Dateien im Ordner finden
+    pdf_files = list(pdf_dir.glob("ausleihe_*.pdf"))
+
+    if not pdf_files:
+        return send_file(
+            io.BytesIO(b'Keine Ausleihe-PDFs gefunden.'),
+            mimetype='text/plain',
+            as_attachment=True,
+            download_name='keine_pdfs.txt'
+        )
+
+    # ZIP-Datei erstellen
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for pdf_file in pdf_files:
+            # Dateinamen bereinigen für bessere Lesbarkeit
+            clean_name = pdf_file.name
+            zip_file.write(pdf_file, clean_name)
+
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'alle_ausleihen_{lager_id}_{timestamp}.zip'
+    )
+
+
+def _generate_borrow_pdf(self, borrow_info, devices):
+    """Helper function to generate a single borrow PDF"""
+    def get_base_name(name):
+        match = re.match(r'^(.*?)\s*\d*$', name.strip())
+        if match:
+            base = match.group(1).strip()
+            return base if base else name
+        return name
+    
+    grouped_devices = {}
+    for device in devices:
+        device_id, name, barcode, modell, preis, seriennummer = device
+        base_name = get_base_name(name)
+        
+        if base_name not in grouped_devices:
+            grouped_devices[base_name] = {
+                'name': base_name,
+                'items': [],
+                'count': 0,
+                'total_price': 0,
+                'model': modell or '',
+                'image_path': None
+            }
+        
+        grouped_devices[base_name]['items'].append({
+            'id': device_id,
+            'full_name': name,
+            'barcode': barcode,
+            'price': preis or 0,
+            'seriennummer': seriennummer or ''
+        })
+        grouped_devices[base_name]['count'] += 1
+        grouped_devices[base_name]['total_price'] += (preis or 0)
+        
+        if not grouped_devices[base_name]['image_path']:
+            for ext in ['.jpg', '.png', '.jpeg']:
+                img_path = f'images/{device_id}{ext}'
+                if os.path.exists(img_path):
+                    grouped_devices[base_name]['image_path'] = img_path
+                    break
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                 fontSize=24, textColor=colors.HexColor('#1a1a1a'),
+                                 spaceAfter=20, alignment=TA_LEFT)
+    header_style = ParagraphStyle('Header', parent=styles['Normal'],
+                                  fontSize=10, textColor=colors.HexColor('#666666'),
+                                  spaceAfter=10)
+    small_style = ParagraphStyle('Small', parent=styles['Normal'],
+                                 fontSize=7, textColor=colors.HexColor('#666666'))
+    
+    elements = []
+    elements.append(Paragraph(f"Ausleihe-Übersicht", title_style))
+    elements.append(Spacer(1, 0.5*cm))
+    
+    info_text = f"""
+    <b>Ausleihe-ID:</b> {borrow_info[0]}<br/>
+    <b>Ausgeliehen an:</b> {borrow_info[1]}<br/>
+    <b>Datum:</b> {borrow_info[2]}<br/>
+    """
+    if borrow_info[3]:
+        info_text += f"<b>E-Mail:</b> {borrow_info[3]}<br/>"
+    if borrow_info[4]:
+        info_text += f"<b>Klasse:</b> {borrow_info[4]}<br/>"
+    
+    elements.append(Paragraph(info_text, header_style))
+    elements.append(Spacer(1, 1*cm))
+    
+    table_data = [['', 'Artikel', 'S/N & QR', 'Menge', 'Preis/St.', 'Gesamt']]
+    
+    total_sum = 0
+    for group_name, group_data in sorted(grouped_devices.items()):
+        row = []
+        
+        if group_data['image_path']:
+            try:
+                img = RLImage(group_data['image_path'], width=2*cm, height=2*cm)
+                row.append(img)
+            except:
+                row.append('')
+        else:
+            row.append('')
+        
+        name_text = f"<b>{group_data['name']}</b>"
+        if group_data['model']:
+            name_text += f"<br/><font size=8 color='#666666'>{group_data['model']}</font>"
+        row.append(Paragraph(name_text, styles['Normal']))
+        
+        sn_qr_data = []
+        for item in group_data['items']:
+            sn = item['seriennummer'] if item['seriennummer'] else 'N/A'
+            
+            try:
+                qr = qrcode.QRCode(version=1, box_size=3, border=1)
+                qr.add_data(item['barcode'])
+                qr.make(fit=True)
+                qr_img = qr.make_image(fill_color="black", back_color="white")
+                
+                qr_buffer = BytesIO()
+                qr_img.save(qr_buffer, format='PNG')
+                qr_buffer.seek(0)
+                
+                qr_rl = RLImage(qr_buffer, width=1*cm, height=1*cm)
+                
+                mini_table = Table([[Paragraph(f"<font size=7>S/N: {sn}</font>", small_style), qr_rl]], 
+                                   colWidths=[2*cm, 1.2*cm])
+                mini_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 1),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ]))
+                sn_qr_data.append(mini_table)
+            except:
+                sn_qr_data.append(Paragraph(f"<font size=7>S/N: {sn}</font>", small_style))
+        
+        sn_qr_container = Table([[item] for item in sn_qr_data], colWidths=[3.2*cm])
+        sn_qr_container.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]))
+        
+        row.append(sn_qr_container)
+        row.append(str(group_data['count']))
+        
+        avg_price = group_data['total_price'] / group_data['count'] if group_data['count'] > 0 else 0
+        row.append(f"{avg_price:.2f} €")
+        row.append(f"{group_data['total_price']:.2f} €")
+        
+        table_data.append(row)
+        total_sum += group_data['total_price']
+    
+    table_data.append(['', Paragraph('<b>Summe</b>', styles['Normal']), '', '', '', f"{total_sum:.2f} €"])
+    
+    table = Table(table_data, colWidths=[2.5*cm, 6*cm, 3.5*cm, 1.5*cm, 2.5*cm, 2.5*cm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#333333')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (3, 0), (3, -1), 'CENTER'),
+        ('ALIGN', (4, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#e0e0e0')),
+        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#333333')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    
+    elements.append(table)
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return buffer
+
+
+def ensure_borrow_pdfs_directory(lager_id):
+    pdf_dir = Path(f'borrow_pdfs_{lager_id}')
+    pdf_dir.mkdir(exist_ok=True)
+    return pdf_dir
+
+def generate_borrow_pdf(borrow_info, devices):
+    def get_base_name(name):
+        match = re.match(r'^(.*?)\s*\d*$', name.strip())
+        if match:
+            base = match.group(1).strip()
+            return base if base else name
+        return name
+    
+    grouped_devices = {}
+    for device in devices:
+        device_id, name, barcode, modell, preis, quantity = device
+        base_name = get_base_name(name)
+        
+        if base_name not in grouped_devices:
+            grouped_devices[base_name] = {
+                'name': base_name,
+                'items': [],
+                'count': 0,
+                'total_price': 0,
+                'model': modell or '',
+                'image_path': None
+            }
+        
+        grouped_devices[base_name]['items'].append({
+            'id': device_id,
+            'full_name': name,
+            'barcode': barcode,
+            'price': preis or 0,
+            'quantity': quantity
+        })
+        grouped_devices[base_name]['count'] += quantity
+        grouped_devices[base_name]['total_price'] += (preis or 0) * quantity
+        
+        if not grouped_devices[base_name]['image_path']:
+            for ext in ['.jpg', '.png', '.jpeg']:
+                img_path = f'images/{device_id}{ext}'
+                if os.path.exists(img_path):
+                    grouped_devices[base_name]['image_path'] = img_path
+                    break
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm)
+    
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#1a1a1a'),
+        spaceAfter=20,
+        alignment=TA_LEFT
+    )
+    
+    header_style = ParagraphStyle(
+        'Header',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=10
+    )
+    
+    elements = []
+    
+    elements.append(Paragraph(f"Ausleihe-Übersicht", title_style))
+    elements.append(Spacer(1, 0.5*cm))
+    
+    info_text = f"""
+    <b>Ausleihe-ID:</b> {borrow_info[0]}<br/>
+    <b>Ausgeliehen an:</b> {borrow_info[1]}<br/>
+    <b>Datum:</b> {borrow_info[2]}<br/>
+    """
+    if borrow_info[3]:
+        info_text += f"<b>E-Mail:</b> {borrow_info[3]}<br/>"
+    if borrow_info[4]:
+        info_text += f"<b>Klasse:</b> {borrow_info[4]}<br/>"
+    
+    elements.append(Paragraph(info_text, header_style))
+    elements.append(Spacer(1, 1*cm))
+    
+    table_data = [['', 'Artikel', 'Menge', 'Preis/St.', 'Gesamt']]
+    
+    total_sum = 0
+    for group_name, group_data in sorted(grouped_devices.items()):
+        row = []
+        
+        if group_data['image_path']:
+            try:
+                img = RLImage(group_data['image_path'], width=2*cm, height=2*cm)
+                row.append(img)
+            except:
+                row.append('')
+        else:
+            row.append('')
+        
+        name_text = f"<b>{group_data['name']}</b>"
+        if group_data['model']:
+            name_text += f"<br/><font size=8 color='#666666'>{group_data['model']}</font>"
+        row.append(Paragraph(name_text, styles['Normal']))
+        
+        row.append(str(group_data['count']))
+        
+        avg_price = group_data['total_price'] / group_data['count'] if group_data['count'] > 0 else 0
+        row.append(f"{avg_price:.2f} €")
+        
+        row.append(f"{group_data['total_price']:.2f} €")
+        
+        table_data.append(row)
+        total_sum += group_data['total_price']
+    
+    table_data.append(['', Paragraph('<b>Summe</b>', styles['Normal']), '', '', f"{total_sum:.2f} €"])
+    
+    table = Table(table_data, colWidths=[3*cm, 8*cm, 2*cm, 3*cm, 3*cm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#333333')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (2, 0), (2, -1), 'CENTER'),
+        ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#e0e0e0')),
+        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#333333')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    
+    elements.append(table)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    return buffer
+
+def regenerate_missing_borrow_pdfs():
+    if 'current_lager' not in session:
+        return {'success': False, 'message': 'Kein Lager ausgewählt'}
+    
+    lager_id = session['current_lager']
+    pdf_dir = ensure_borrow_pdfs_directory(lager_id)
+    
+    conn = get_db_connection(lager_id)
+    c = conn.cursor()
+    
+    # Get all borrow IDs
+    c.execute("SELECT ausleih_id FROM ausleihen")
+    borrow_ids = [row[0] for row in c.fetchall()]
+    
+    generated = 0
+    for ausleih_id in borrow_ids:
+        pdf_path = pdf_dir / f"ausleihe_{ausleih_id}.pdf"
+        
+        # Generate PDF
+        c.execute("""SELECT a.ausleih_id, a.mitarbeiter_name, a.datum, a.email, a.klasse
+                     FROM ausleihen a
+                     WHERE a.ausleih_id = ?""", (ausleih_id,))
+        borrow_info = c.fetchone()
+        
+        c.execute("""SELECT g.id, g.name, g.barcode, g.modell, g.preis, ad.quantity
+                     FROM ausleih_details ad
+                     JOIN geraete g ON ad.geraet_id = g.id
+                     WHERE ad.ausleih_id = ?
+                     ORDER BY g.name""", (ausleih_id,))
+        devices = c.fetchall()
+        
+        buffer = generate_borrow_pdf(borrow_info, devices)
+        
+        with open(pdf_path, 'wb') as f:
+            f.write(buffer.getvalue())
+        
+        generated += 1
+    
+    conn.close()
+    
+    return {'success': True, 'message': f'{generated} PDFs regeneriert'}
+
+app._generate_borrow_pdf = lambda borrow_info, devices: _generate_borrow_pdf(None, borrow_info, devices)
 
 @app.route('/borrow_pdf/<ausleih_id>')
 def borrow_pdf(ausleih_id):
