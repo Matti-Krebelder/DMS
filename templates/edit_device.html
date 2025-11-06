@@ -19,6 +19,8 @@
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <input type="text" name="modell" value="{{ device[7] or '' }}" placeholder="Modell"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="text" name="hersteller" value="{{ device[13] or '' }}" placeholder="Hersteller"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <input type="text" name="instrumentenart" value="{{ device[8] or '' }}" placeholder="Instrumentenart" list="instrumentenarten"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <datalist id="instrumentenarten">
@@ -31,6 +33,8 @@
         <input type="date" name="kaufdatum" value="{{ device[10] or '' }}" placeholder="Kaufdatum"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <input type="number" name="preis" value="{{ device[11] or '' }}" placeholder="Preis (€)" step="0.01" min="0"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        <input type="number" name="quantity" value="{{ device[12] or 1 }}" min="1" placeholder="Menge"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <textarea name="beschreibung" placeholder="Beschreibung"
                   class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none h-24"

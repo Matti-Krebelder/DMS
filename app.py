@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file, flash
 from flask_cors import CORS
 from markupsafe import Markup
 import sqlite3
@@ -20,6 +20,7 @@ from docx.oxml import parse_xml
 from docx.oxml.ns import qn
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+import time
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -34,7 +35,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "2.7"
+VERSION = "2.8"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
@@ -87,7 +88,9 @@ def create_warehouse_db(lager_id):
                    instrumentenart TEXT,
                    inventarnummer TEXT,
                    kaufdatum TEXT,
-                   preis REAL)''')
+                   preis REAL,
+                   quantity INTEGER DEFAULT 1,
+                   hersteller TEXT)''')
     c.execute('''CREATE TABLE ausleihen
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                    ausleih_id TEXT NOT NULL,
@@ -104,6 +107,7 @@ def create_warehouse_db(lager_id):
                    ausleih_id TEXT NOT NULL,
                    geraet_id INTEGER NOT NULL,
                    geraet_barcode TEXT NOT NULL,
+                   quantity INTEGER DEFAULT 1,
                    FOREIGN KEY(ausleih_id) REFERENCES ausleihen(ausleih_id),
                    FOREIGN KEY(geraet_id) REFERENCES geraete(id))''')
     c.execute('''CREATE TABLE label_layouts
@@ -114,6 +118,17 @@ def create_warehouse_db(lager_id):
                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
     conn.commit()
+    conn.close()
+
+def migrate_warehouse_db(lager_id):
+    conn = sqlite3.connect(f'{lager_id}.db')
+    c = conn.cursor()
+    # Check if hersteller column exists
+    c.execute("PRAGMA table_info(geraete)")
+    columns = [col[1] for col in c.fetchall()]
+    if 'hersteller' not in columns:
+        c.execute("ALTER TABLE geraete ADD COLUMN hersteller TEXT")
+        conn.commit()
     conn.close()
 
 def generate_random_id(length=6):
@@ -140,6 +155,7 @@ def get_lager_system_type(lager_id):
     result = c.fetchone()
     conn.close()
     return result[0] if result else 'personal'
+
 
 def backup_db(lager_id, operation):
     os.makedirs('backups', exist_ok=True)
@@ -212,6 +228,8 @@ def warehouse(lager_id):
     if not os.path.exists(f'{lager_id}.db'):
         return redirect(url_for('dashboard'))
 
+    migrate_warehouse_db(lager_id)
+
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
     c.execute("SELECT id FROM lager WHERE id = ? AND (created_by = ? OR access_users LIKE ?)",
@@ -240,7 +258,7 @@ def devices():
     conn = get_db_connection(session['current_lager'])
     c = conn.cursor()
     
-    query = """SELECT g.* FROM geraete g
+    query = """SELECT DISTINCT g.* FROM geraete g
                LEFT JOIN ausleih_details ad ON g.id = ad.geraet_id
                LEFT JOIN ausleihen a ON ad.ausleih_id = a.ausleih_id AND a.status = 'ausgeliehen'
                WHERE 1=1"""
@@ -334,7 +352,7 @@ def devices():
 def add_device():
     if 'current_lager' not in session:
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         name = request.form['name']
         lagerplatz = request.form['lagerplatz']
@@ -345,19 +363,21 @@ def add_device():
         inventarnummer = request.form['inventarnummer']
         kaufdatum = request.form['kaufdatum']
         preis = request.form.get('preis', 0)
-        
+        quantity = int(request.form.get('quantity', 1)) if request.form.get('quantity_enabled') == 'on' else 1
+        hersteller = request.form['hersteller']
+
         conn = get_db_connection(session['current_lager'])
         c = conn.cursor()
-        
+
         while True:
             barcode = generate_random_id(6)
             c.execute("SELECT id FROM geraete WHERE barcode = ?", (barcode,))
             if not c.fetchone():
                 break
-        
+
         backup_db(session['current_lager'], 'before_add_device')
-        c.execute("INSERT INTO geraete (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                  (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis))
+        c.execute("INSERT INTO geraete (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis, quantity, hersteller) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis, quantity, hersteller))
         conn.commit()
         backup_db(session['current_lager'], 'after_add_device')
         conn.close()
@@ -393,6 +413,8 @@ def edit_device(device_id):
         inventarnummer = request.form['inventarnummer']
         kaufdatum = request.form['kaufdatum']
         preis = request.form.get('preis', 0)
+        quantity = int(request.form.get('quantity', 1))
+        hersteller = request.form['hersteller']
         defekt = request.form.get('defekt', 'off') == 'on'
 
         c.execute("SELECT id FROM geraete WHERE barcode = ? AND id != ?", (barcode, device_id))
@@ -413,10 +435,16 @@ def edit_device(device_id):
             beschreibung = current_beschreibung
 
         backup_db(session['current_lager'], 'before_edit_device')
-        c.execute("UPDATE geraete SET name = ?, barcode = ?, lagerplatz = ?, beschreibung = ?, seriennummer = ?, modell = ?, instrumentenart = ?, inventarnummer = ?, kaufdatum = ?, preis = ?, status = ? WHERE id = ?",
-                  (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis, 'defekt' if defekt else 'verfügbar', device_id))
+        if defekt:
+            status = 'defekt'
+        else:
+            status = 'verfügbar'  # temporary
+        c.execute("UPDATE geraete SET name = ?, barcode = ?, lagerplatz = ?, beschreibung = ?, seriennummer = ?, modell = ?, instrumentenart = ?, inventarnummer = ?, kaufdatum = ?, preis = ?, quantity = ?, hersteller = ?, status = ? WHERE id = ?",
+                  (name, barcode, lagerplatz, beschreibung, seriennummer, modell, instrumentenart, inventarnummer, kaufdatum, preis, quantity, hersteller, status, device_id))
         conn.commit()
         backup_db(session['current_lager'], 'after_edit_device')
+        if not defekt:
+            update_device_status(session['current_lager'], device_id)
         conn.close()
         return redirect(url_for('devices'))
     
@@ -452,67 +480,6 @@ def delete_device(device_id):
     conn.close()
     return redirect(url_for('devices'))
 
-@app.route('/borrow', methods=['GET', 'POST'])
-def borrow():
-    if 'current_lager' not in session:
-        return redirect(url_for('dashboard'))
-    
-    system_type = get_lager_system_type(session['current_lager'])
-    
-    if request.method == 'POST':
-        if 'add_device' in request.form:
-            barcode = request.form['barcode']
-            if 'borrow_list' not in session:
-                session['borrow_list'] = []
-            
-            conn = get_db_connection(session['current_lager'])
-            c = conn.cursor()
-            c.execute("SELECT id, name, barcode FROM geraete WHERE barcode = ? AND status = 'verfügbar'", (barcode,))
-            device = c.fetchone()
-            conn.close()
-            
-            if device and device[0] not in [d['id'] for d in session['borrow_list']]:
-                session['borrow_list'].append({
-                    'id': device[0], 'name': device[1], 'barcode': device[2]
-                })
-                session.modified = True
-                
-        elif 'complete_borrow' in request.form:
-            if system_type == 'personal':
-                borrower_name = session['user_name']
-                borrower_id = session['user_id']
-                email = klasse = None
-            else:
-                borrower_name = request.form['borrower_name']
-                borrower_id = request.form.get('borrower_id', 'N/A')
-                email = request.form.get('email')
-                klasse = request.form.get('klasse')
-            
-            if session.get('borrow_list'):
-                ausleih_id = generate_random_id(4)
-                conn = get_db_connection(session['current_lager'])
-                c = conn.cursor()
-                backup_db(session['current_lager'], 'before_borrow')
-                
-                c.execute("INSERT INTO ausleihen (ausleih_id, mitarbeiter_id, mitarbeiter_name, zielort, datum, rueckgabe_qr, email, klasse) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                          (ausleih_id, borrower_id, borrower_name, 'N/A',
-                           datetime.now().strftime('%Y-%m-%d %H:%M:%S'), ausleih_id, email, klasse))
-                
-                for device in session['borrow_list']:
-                    c.execute("INSERT INTO ausleih_details (ausleih_id, geraet_id, geraet_barcode) VALUES (?, ?, ?)",
-                              (ausleih_id, device['id'], device['barcode']))
-                    c.execute("UPDATE geraete SET status = ? WHERE id = ?",
-                              (f"ausgeliehen an {borrower_name}", device['id']))
-                
-                conn.commit()
-                backup_db(session['current_lager'], 'after_borrow')
-                conn.close()
-                session['borrow_list'] = []
-                session.modified = True
-                return redirect(url_for('borrow_success', ausleih_id=ausleih_id))
-    
-    borrow_list = session.get('borrow_list', [])
-    return render_template('borrow.html', title="Ausleihen", borrow_list=borrow_list, system_type=system_type)
 
 @app.route('/borrow_success/<ausleih_id>')
 def borrow_success(ausleih_id):
@@ -545,10 +512,13 @@ def borrow_success(ausleih_id):
         'klasse': borrow_row[8]
     }
     
-    c.execute("""SELECT g.name, g.barcode, g.id
+    c.execute("""SELECT g.name, g.barcode, g.id, SUM(ad2.quantity) as total_quantity
                  FROM ausleih_details ad
                  JOIN geraete g ON ad.geraet_id = g.id
-                 WHERE ad.ausleih_id = ?""", (ausleih_id,))
+                 LEFT JOIN ausleih_details ad2 ON ad2.geraet_id = g.id
+                 LEFT JOIN ausleihen a2 ON ad2.ausleih_id = a2.ausleih_id AND a2.status = 'ausgeliehen'
+                 WHERE ad.ausleih_id = ?
+                 GROUP BY g.id, g.name, g.barcode""", (ausleih_id,))
     devices = c.fetchall()
     conn.close()
     
@@ -573,7 +543,7 @@ def borrow_pdf(ausleih_id):
         conn.close()
         return redirect(url_for('dashboard'))
     
-    c.execute("""SELECT g.id, g.name, g.barcode, g.modell, g.preis
+    c.execute("""SELECT g.id, g.name, g.barcode, g.modell, g.preis, ad.quantity
                  FROM ausleih_details ad
                  JOIN geraete g ON ad.geraet_id = g.id
                  WHERE ad.ausleih_id = ?
@@ -591,9 +561,9 @@ def borrow_pdf(ausleih_id):
     
     grouped_devices = {}
     for device in devices:
-        device_id, name, barcode, modell, preis = device
+        device_id, name, barcode, modell, preis, quantity = device
         base_name = get_base_name(name)
-        
+
         if base_name not in grouped_devices:
             grouped_devices[base_name] = {
                 'name': base_name,
@@ -603,16 +573,17 @@ def borrow_pdf(ausleih_id):
                 'model': modell or '',
                 'image_path': None
             }
-        
+
         grouped_devices[base_name]['items'].append({
             'id': device_id,
             'full_name': name,
             'barcode': barcode,
-            'price': preis or 0
+            'price': preis or 0,
+            'quantity': quantity
         })
-        grouped_devices[base_name]['count'] += 1
-        grouped_devices[base_name]['total_price'] += (preis or 0)
-        
+        grouped_devices[base_name]['count'] += quantity
+        grouped_devices[base_name]['total_price'] += (preis or 0) * quantity
+
         if not grouped_devices[base_name]['image_path']:
             for ext in ['.jpg', '.png', '.jpeg']:
                 img_path = f'images/{device_id}{ext}'
@@ -719,6 +690,161 @@ def borrow_pdf(ausleih_id):
     return send_file(buffer, mimetype='application/pdf', 
                     as_attachment=True, download_name=f'ausleihe_{ausleih_id}.pdf')
 
+def update_device_status(lager_id, device_id, conn=None):
+    """
+    Update device status based on current borrows.
+    If conn is provided, use it. Otherwise create a new connection.
+    """
+    should_close = False
+    if conn is None:
+        conn = get_db_connection(lager_id)
+        should_close = True
+    
+    try:
+        c = conn.cursor()
+
+        # Get device info
+        c.execute("SELECT name, quantity FROM geraete WHERE id = ?", (device_id,))
+        device = c.fetchone()
+        if not device:
+            return
+
+        device_name, max_quantity = device
+
+        # Calculate total borrowed per borrower
+        c.execute("""SELECT a.mitarbeiter_name, SUM(ad.quantity) as total_quantity
+                     FROM ausleih_details ad
+                     JOIN ausleihen a ON ad.ausleih_id = a.ausleih_id
+                     WHERE ad.geraet_id = ? AND a.status = 'ausgeliehen'
+                     GROUP BY a.mitarbeiter_name
+                     ORDER BY a.mitarbeiter_name""", (device_id,))
+        borrowers = c.fetchall()
+
+        # Update status
+        if not borrowers:
+            status = 'verfügbar'
+        else:
+            borrower_strings = [f"{name} ({qty})" for name, qty in borrowers]
+            status = ", ".join(borrower_strings)
+
+        c.execute("UPDATE geraete SET status = ? WHERE id = ?", (status, device_id))
+        
+        if should_close:
+            conn.commit()
+            
+    finally:
+        if should_close and conn:
+            conn.close()
+
+@app.route('/borrow', methods=['GET', 'POST'])
+def borrow():
+    if 'current_lager' not in session:
+        return redirect(url_for('dashboard'))
+    
+    system_type = get_lager_system_type(session['current_lager'])
+    
+    if request.method == 'POST':
+        if 'add_device' in request.form:
+            barcode_inputs = request.form['barcode'].strip().split('\n')
+
+            if 'borrow_list' not in session:
+                session['borrow_list'] = []
+
+            conn = get_db_connection(session['current_lager'])
+            c = conn.cursor()
+
+            added_count = 0
+            error_messages = []
+
+            for barcode_input in barcode_inputs:
+                barcode = barcode_input.strip()
+                if not barcode:
+                    continue
+
+                c.execute("SELECT id, name, barcode, quantity FROM geraete WHERE barcode = ?", (barcode,))
+                device = c.fetchone()
+
+                if device:
+                    device_id, name, barcode_val, max_quantity = device
+                    # Check how many are already borrowed
+                    c.execute("SELECT SUM(ad.quantity) FROM ausleih_details ad JOIN ausleihen a ON ad.ausleih_id = a.ausleih_id WHERE ad.geraet_id = ? AND a.status = 'ausgeliehen'", (device_id,))
+                    already_borrowed = c.fetchone()[0] or 0
+                    available = max_quantity - already_borrowed
+
+                    if available <= 0:
+                        error_messages.append(f"Gerät '{name}' ist nicht mehr verfügbar (alle {max_quantity} Exemplare ausgeliehen).")
+                        continue
+
+                    existing = next((d for d in session['borrow_list'] if d['id'] == device_id), None)
+                    if existing:
+                        if existing['quantity'] >= available:
+                            error_messages.append(f"Maximale Anzahl für '{name}' bereits ausgewählt ({available}).")
+                        else:
+                            existing['quantity'] += 1
+                            session.modified = True
+                            added_count += 1
+                    else:
+                        session['borrow_list'].append({
+                            'id': device_id, 'name': name, 'barcode': barcode_val,
+                            'quantity': 1,
+                            'max_quantity': available
+                        })
+                        session.modified = True
+                        added_count += 1
+                else:
+                    error_messages.append(f"Gerät mit Barcode '{barcode}' nicht gefunden.")
+
+            conn.close()
+
+            if added_count > 0:
+                flash(f"{added_count} Gerät(e) erfolgreich zur Ausleihliste hinzugefügt.", "success")
+            if error_messages:
+                for msg in error_messages:
+                    flash(msg, "error")
+                
+                
+        elif 'complete_borrow' in request.form:
+            if system_type == 'personal':
+                borrower_name = session['user_name']
+                borrower_id = session['user_id']
+                email = klasse = None
+            else:
+                borrower_name = request.form['borrower_name']
+                borrower_id = request.form.get('borrower_id', 'N/A')
+                email = request.form.get('email')
+                klasse = request.form.get('klasse')
+            
+            if session.get('borrow_list'):
+                ausleih_id = generate_random_id(4)
+                
+                # BACKUP VOR dem Öffnen der Connection
+                backup_db(session['current_lager'], 'before_borrow')
+                
+                conn = get_db_connection(session['current_lager'])
+                c = conn.cursor()
+                
+                c.execute("INSERT INTO ausleihen (ausleih_id, mitarbeiter_id, mitarbeiter_name, zielort, datum, rueckgabe_qr, email, klasse) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                          (ausleih_id, borrower_id, borrower_name, 'N/A',
+                           datetime.now().strftime('%Y-%m-%d %H:%M:%S'), ausleih_id, email, klasse))
+                
+                for device in session['borrow_list']:
+                    c.execute("INSERT INTO ausleih_details (ausleih_id, geraet_id, geraet_barcode, quantity) VALUES (?, ?, ?, ?)",
+                              (ausleih_id, device['id'], device['barcode'], device['quantity']))
+                    update_device_status(session['current_lager'], device['id'], conn)
+                
+                conn.commit()
+                conn.close()
+                
+                # BACKUP NACH dem Schließen der Connection
+                backup_db(session['current_lager'], 'after_borrow')
+                
+                session['borrow_list'] = []
+                session.modified = True
+                return redirect(url_for('borrow_success', ausleih_id=ausleih_id))
+    
+    borrow_list = session.get('borrow_list', [])
+    return render_template('borrow.html', title="Ausleihen", borrow_list=borrow_list, system_type=system_type)
+
 @app.route('/return', methods=['GET', 'POST'])
 def return_devices():
     if 'current_lager' not in session:
@@ -734,13 +860,15 @@ def return_devices():
             ausleih_id = request.form['ausleih_id']
             device_ids = request.form.getlist('return_devices')
             
-            conn = get_db_connection(session['current_lager'])
-            c = conn.cursor()
+            # BACKUP VOR dem Öffnen der Connection
             backup_db(session['current_lager'], 'before_return')
             
+            conn = get_db_connection(session['current_lager'])
+            c = conn.cursor()
+            
             for device_id in device_ids:
-                c.execute("UPDATE geraete SET status = 'verfügbar' WHERE id = ?", (device_id,))
                 c.execute("DELETE FROM ausleih_details WHERE ausleih_id = ? AND geraet_id = ?", (ausleih_id, device_id))
+                update_device_status(session['current_lager'], device_id, conn)
             
             c.execute("SELECT COUNT(*) FROM ausleih_details WHERE ausleih_id = ?", (ausleih_id,))
             remaining = c.fetchone()[0]
@@ -748,8 +876,11 @@ def return_devices():
                 c.execute("UPDATE ausleihen SET status = 'zurückgegeben' WHERE ausleih_id = ?", (ausleih_id,))
             
             conn.commit()
-            backup_db(session['current_lager'], 'after_return')
             conn.close()
+            
+            # BACKUP NACH dem Schließen der Connection
+            backup_db(session['current_lager'], 'after_return')
+            
             return redirect(url_for('return_devices'))
     
     qr_code = request.args.get('qr')
@@ -1024,10 +1155,10 @@ def export():
     if format_type == 'csv':
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Name', 'Barcode', 'Lagerplatz', 'Status', 'Beschreibung', 'Seriennummer', 'Modell', 'Instrumentenart', 'Inventar-Nummer', 'Kaufdatum', 'Preis', 'Ausgeliehen an', 'Email', 'Klasse'])
-        
+        writer.writerow(['Name', 'Barcode', 'Lagerplatz', 'Status', 'Beschreibung', 'Seriennummer', 'Modell', 'Hersteller', 'Instrumentenart', 'Inventar-Nummer', 'Kaufdatum', 'Preis', 'Ausgeliehen an', 'Email', 'Klasse'])
+
         for device in devices_list:
-            writer.writerow([device[1], device[2], device[3], device[4], device[5], device[6], device[7], device[8], device[9] or '', device[10] or '', device[11] or '', device[12] or '', device[15] or '', device[16] or ''])
+            writer.writerow([device[1], device[2], device[3], device[4], device[5], device[6], device[7], device[13] or '', device[8], device[9] or '', device[10] or '', device[11] or '', device[12] or '', device[15] or '', device[16] or ''])
         
         output.seek(0)
         return send_file(io.BytesIO(output.getvalue().encode('utf-8')), 
@@ -1504,4 +1635,4 @@ def logout():
 if __name__ == '__main__':
     init_user_db()
     check_version()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=2000)

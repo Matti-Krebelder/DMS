@@ -20,7 +20,10 @@
         
         <input type="text" name="modell" placeholder="Modell"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
-        
+
+        <input type="text" name="hersteller" placeholder="Hersteller"
+               class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+
         <input type="text" name="instrumentenart" placeholder="Instrument" list="instrumentenarten"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
         <datalist id="instrumentenarten">
@@ -37,7 +40,16 @@
         
         <input type="number" name="preis" placeholder="Preis (€)" step="0.01" min="0"
                class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
-        
+
+        <div class="flex items-center gap-2">
+            <input type="checkbox" name="quantity_enabled" id="quantity_enabled" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500">
+            <label for="quantity_enabled" class="text-sm text-gray-300">Menge</label>
+        </div>
+        <div id="quantity_input" class="hidden">
+            <input type="number" name="quantity" min="1" value="1" placeholder="Menge eingeben"
+                   class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none">
+        </div>
+
         <textarea name="beschreibung" placeholder="Beschreibung (optional)"
                   class="w-full p-3 bg-gray-700 rounded focus:border-blue-500 focus:outline-none h-24"></textarea>
         
@@ -50,4 +62,20 @@
         <i class="fas fa-arrow-left mr-2"></i>Zurück
     </a>
 </div>
+
+<script>
+function toggleQuantity() {
+    const qtyInput = document.getElementById('quantity_input');
+    const checked = document.getElementById('quantity_enabled').checked;
+    if (checked) {
+        qtyInput.classList.remove('hidden');
+    } else {
+        qtyInput.classList.add('hidden');
+    }
+}
+
+document.getElementById('quantity_enabled').addEventListener('change', toggleQuantity);
+toggleQuantity(); // initial check
+</script>
+
 {% endblock %}
