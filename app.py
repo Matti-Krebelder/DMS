@@ -37,7 +37,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "2.9"
+VERSION = "3.0"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
@@ -122,16 +122,287 @@ def create_warehouse_db(lager_id):
     conn.commit()
     conn.close()
 
-def migrate_warehouse_db(lager_id):
-    conn = sqlite3.connect(f'{lager_id}.db')
-    c = conn.cursor()
-    # Check if hersteller column exists
-    c.execute("PRAGMA table_info(geraete)")
-    columns = [col[1] for col in c.fetchall()]
-    if 'hersteller' not in columns:
-        c.execute("ALTER TABLE geraete ADD COLUMN hersteller TEXT")
+import sqlite3
+import shutil
+from datetime import datetime
+import os
+
+def backup_database(db_path, operation="auto_migration"):
+    """Create a backup of the database before making changes"""
+    os.makedirs('backups', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_path = f'backups/{timestamp}_{operation}_{os.path.basename(db_path)}'
+    shutil.copy(db_path, backup_path)
+    print(f"Backup erstellt: {backup_path}")
+    return backup_path
+
+def get_table_columns(conn, table_name):
+    """Get all columns of a table"""
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    return {row[1]: row[2] for row in cursor.fetchall()}  # {column_name: column_type}
+
+def add_missing_column(conn, table_name, column_name, column_type, default_value=None):
+    """Add a missing column to a table"""
+    cursor = conn.cursor()
+    try:
+        sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+        if default_value is not None:
+            sql += f" DEFAULT {default_value}"
+        cursor.execute(sql)
         conn.commit()
-    conn.close()
+        print(f"Spalte hinzugefügt: {table_name}.{column_name} ({column_type})")
+        return True
+    except sqlite3.Error as e:
+        print(f"Fehler beim Hinzufügen der Spalte {column_name}: {e}")
+        return False
+
+def check_and_migrate_warehouse_db(lager_id):
+    """Check and migrate a warehouse database with all required columns"""
+    db_path = f'{lager_id}.db'
+    
+    if not os.path.exists(db_path):
+        print(f"Datenbank {db_path} existiert nicht")
+        return False
+    
+    # Backup vor Migration
+    backup_database(db_path, "migration")
+    
+    conn = sqlite3.connect(db_path)
+    
+    try:
+        # Definiere erwartete Spalten für jede Tabelle
+        expected_schema = {
+            'geraete': {
+                'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name': 'TEXT NOT NULL',
+                'barcode': 'TEXT UNIQUE NOT NULL',
+                'lagerplatz': 'TEXT NOT NULL',
+                'status': 'TEXT DEFAULT "verfügbar"',
+                'beschreibung': 'TEXT',
+                'seriennummer': 'TEXT',
+                'modell': 'TEXT',
+                'instrumentenart': 'TEXT',
+                'inventarnummer': 'TEXT',
+                'kaufdatum': 'TEXT',
+                'preis': 'REAL',
+                'quantity': 'INTEGER DEFAULT 1',
+                'hersteller': 'TEXT'
+            },
+            'ausleihen': {
+                'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'ausleih_id': 'TEXT NOT NULL',
+                'mitarbeiter_id': 'TEXT NOT NULL',
+                'mitarbeiter_name': 'TEXT NOT NULL',
+                'zielort': 'TEXT NOT NULL',
+                'datum': 'TEXT NOT NULL',
+                'rueckgabe_qr': 'TEXT NOT NULL',
+                'status': 'TEXT DEFAULT "ausgeliehen"',
+                'email': 'TEXT',
+                'klasse': 'TEXT'
+            },
+            'ausleih_details': {
+                'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'ausleih_id': 'TEXT NOT NULL',
+                'geraet_id': 'INTEGER NOT NULL',
+                'geraet_barcode': 'TEXT NOT NULL',
+                'quantity': 'INTEGER DEFAULT 1'
+            },
+            'label_layouts': {
+                'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'name': 'TEXT NOT NULL',
+                'layout_data': 'TEXT NOT NULL',
+                'is_default': 'INTEGER DEFAULT 0',
+                'created_at': 'TEXT DEFAULT CURRENT_TIMESTAMP',
+                'updated_at': 'TEXT DEFAULT CURRENT_TIMESTAMP'
+            }
+        }
+        
+        changes_made = False
+        
+        # Prüfe jede Tabelle
+        for table_name, expected_columns in expected_schema.items():
+            # Prüfe ob Tabelle existiert
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            
+            if not cursor.fetchone():
+                print(f"Tabelle {table_name} existiert nicht - wird erstellt")
+                # Tabelle erstellen (hier könntest du die CREATE TABLE Statements einfügen)
+                if table_name == 'geraete':
+                    cursor.execute('''CREATE TABLE geraete
+                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       name TEXT NOT NULL,
+                                       barcode TEXT UNIQUE NOT NULL,
+                                       lagerplatz TEXT NOT NULL,
+                                       status TEXT DEFAULT 'verfügbar',
+                                       beschreibung TEXT,
+                                       seriennummer TEXT,
+                                       modell TEXT,
+                                       instrumentenart TEXT,
+                                       inventarnummer TEXT,
+                                       kaufdatum TEXT,
+                                       preis REAL,
+                                       quantity INTEGER DEFAULT 1,
+                                       hersteller TEXT)''')
+                elif table_name == 'ausleihen':
+                    cursor.execute('''CREATE TABLE ausleihen
+                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       ausleih_id TEXT NOT NULL,
+                                       mitarbeiter_id TEXT NOT NULL,
+                                       mitarbeiter_name TEXT NOT NULL,
+                                       zielort TEXT NOT NULL,
+                                       datum TEXT NOT NULL,
+                                       rueckgabe_qr TEXT NOT NULL,
+                                       status TEXT DEFAULT 'ausgeliehen',
+                                       email TEXT,
+                                       klasse TEXT)''')
+                elif table_name == 'ausleih_details':
+                    cursor.execute('''CREATE TABLE ausleih_details
+                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       ausleih_id TEXT NOT NULL,
+                                       geraet_id INTEGER NOT NULL,
+                                       geraet_barcode TEXT NOT NULL,
+                                       quantity INTEGER DEFAULT 1,
+                                       FOREIGN KEY(ausleih_id) REFERENCES ausleihen(ausleih_id),
+                                       FOREIGN KEY(geraet_id) REFERENCES geraete(id))''')
+                elif table_name == 'label_layouts':
+                    cursor.execute('''CREATE TABLE label_layouts
+                                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       name TEXT NOT NULL,
+                                       layout_data TEXT NOT NULL,
+                                       is_default INTEGER DEFAULT 0,
+                                       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                                       updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
+                conn.commit()
+                changes_made = True
+                continue
+            
+            # Hole aktuelle Spalten
+            current_columns = get_table_columns(conn, table_name)
+            
+            # Prüfe fehlende Spalten
+            for column_name, column_type in expected_columns.items():
+                if column_name not in current_columns:
+                    print(f"Fehlende Spalte erkannt: {table_name}.{column_name}")
+                    
+                    # Extrahiere DEFAULT-Wert wenn vorhanden
+                    default_value = None
+                    if 'DEFAULT' in column_type:
+                        parts = column_type.split('DEFAULT')
+                        column_type = parts[0].strip()
+                        default_value = parts[1].strip().strip("'\"")
+                        if default_value.upper() != 'CURRENT_TIMESTAMP':
+                            default_value = f"'{default_value}'"
+                    
+                    if add_missing_column(conn, table_name, column_name, column_type, default_value):
+                        changes_made = True
+        
+        if changes_made:
+            print(f"Migration für {lager_id} abgeschlossen")
+        else:
+            print(f"Keine Änderungen für {lager_id} erforderlich")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Fehler bei der Migration: {e}")
+        return False
+    finally:
+        conn.close()
+
+def check_and_migrate_users_db():
+    """Check and migrate the users database"""
+    db_path = 'users.db'
+    
+    if not os.path.exists(db_path):
+        print("users.db existiert nicht - wird initialisiert")
+        init_user_db()
+        return
+    
+    backup_database(db_path, "migration")
+    
+    conn = sqlite3.connect(db_path)
+    
+    try:
+        # Erwartete Spalten für users.db
+        expected_schema = {
+            'users': {
+                'id': 'TEXT PRIMARY KEY',
+                'name': 'TEXT NOT NULL'
+            },
+            'lager': {
+                'id': 'TEXT PRIMARY KEY',
+                'name': 'TEXT NOT NULL',
+                'created_by': 'TEXT',
+                'access_users': 'TEXT',
+                'system_type': 'TEXT DEFAULT "personal"'
+            }
+        }
+        
+        changes_made = False
+        
+        for table_name, expected_columns in expected_schema.items():
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            
+            if not cursor.fetchone():
+                print(f"Tabelle {table_name} in users.db existiert nicht - wird erstellt")
+                if table_name == 'users':
+                    cursor.execute('''CREATE TABLE IF NOT EXISTS users
+                                     (id TEXT PRIMARY KEY, name TEXT NOT NULL)''')
+                elif table_name == 'lager':
+                    cursor.execute('''CREATE TABLE IF NOT EXISTS lager
+                                     (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_by TEXT,
+                                       access_users TEXT, system_type TEXT DEFAULT 'personal')''')
+                conn.commit()
+                changes_made = True
+                continue
+            
+            current_columns = get_table_columns(conn, table_name)
+            
+            for column_name, column_type in expected_columns.items():
+                if column_name not in current_columns:
+                    print(f"Fehlende Spalte in users.db erkannt: {table_name}.{column_name}")
+                    
+                    default_value = None
+                    if 'DEFAULT' in column_type:
+                        parts = column_type.split('DEFAULT')
+                        column_type = parts[0].strip()
+                        default_value = parts[1].strip().strip("'\"")
+                        default_value = f"'{default_value}'"
+                    
+                    if add_missing_column(conn, table_name, column_name, column_type, default_value):
+                        changes_made = True
+        
+        if changes_made:
+            print("Migration für users.db abgeschlossen")
+        else:
+            print("Keine Änderungen für users.db erforderlich")
+            
+    except Exception as e:
+        print(f"Fehler bei der users.db Migration: {e}")
+    finally:
+        conn.close()
+
+def auto_migrate_all_databases():
+    """Automatically check and migrate all databases"""
+    print("=== Starte automatische Datenbank-Migration ===")
+    
+    # Migriere users.db
+    check_and_migrate_users_db()
+    
+    # Finde alle Lager-Datenbanken
+    for file in os.listdir('.'):
+        if file.endswith('.db') and file != 'users.db':
+            lager_id = file[:-3]  # Entferne .db
+            print(f"\nPrüfe Lager-Datenbank: {lager_id}")
+            check_and_migrate_warehouse_db(lager_id)
+    
+    print("\n=== Migration abgeschlossen ===")
+
+def migrate_warehouse_db(lager_id):
+       check_and_migrate_warehouse_db(lager_id)
 
 def generate_random_id(length=6):
     return ''.join(random.choices(string.digits, k=length))
