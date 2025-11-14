@@ -2285,11 +2285,11 @@ def update():
                 tmp_file_path = tmp_file.name
 
             with zipfile.ZipFile(tmp_file_path, 'r') as zip_ref:
-                app_py_info = zip_ref.getinfo('DMS-main/app.py')
+                app_py_info = zip_ref.getinfo('DMS-main/main.py')
                 if app_py_info:
                     zip_ref.extract(app_py_info, '.')
-                    if os.path.exists('DMS-main/app.py'):
-                        shutil.move('DMS-main/app.py', 'app.py')
+                    if os.path.exists('DMS-main/main.py'):
+                        shutil.move('DMS-main/main.py', 'main.py')
 
                 for file_info in zip_ref.filelist:
                     if file_info.filename.startswith('DMS-main/templates/'):
