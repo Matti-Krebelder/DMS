@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1DB954 0%, #191414 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .player-container {
+            background: rgba(25, 20, 20, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .search-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 45px 15px 15px;
+            background: #282828;
+            border: 2px solid #404040;
+            border-radius: 25px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #1DB954;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            fill: #b3b3b3;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #282828;
+            border-radius: 10px;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+
+        .search-results.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            border-bottom: 1px solid #404040;
+        }
+
+        .search-result-item:hover {
+            background: #404040;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            object-fit: cover;
+        }
+
+        .search-result-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .search-result-name {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .search-result-artist {
+            color: #b3b3b3;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .album-art {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 15px;
+            object-fit: cover;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .track-name {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .artist-name {
+            color: #b3b3b3;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .album-name {
+            color: #888888;
+            font-size: 14px;
+        }
+
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #404040;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #1DB954;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            color: #b3b3b3;
+            font-size: 12px;
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        .volume-icon {
+            width: 24px;
+            height: 24px;
+            fill: #b3b3b3;
+            flex-shrink: 0;
+        }
+
+        .volume-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #404040;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #1DB954;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #1DB954;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-value {
+            color: #b3b3b3;
+            font-size: 14px;
+            min-width: 35px;
+            text-align: right;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            fill: #ffffff;
+        }
+
+        .play-pause-btn {
+            width: 70px;
+            height: 70px;
+            fill: #1DB954;
+        }
+
+        .status {
+            text-align: center;
+            color: #b3b3b3;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .logout-btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 20px;
+            background: #404040;
+            color: #ffffff;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #505050;
+        }
+
+        .loading {
+            text-align: center;
+            color: #1DB954;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+            <a href="/dashboard" style="display: flex; align-items: center; gap: 8px; color: #b3b3b3; text-decoration: none; font-size: 18px; transition: color 0.3s ease; background: rgba(25, 20, 20, 0.9); padding: 10px 15px; border-radius: 25px; backdrop-filter: blur(10px);" title="Zurück zum Dashboard">
+                <i class="fas fa-arrow-left" style="font-size: 20px;"></i>
+                <span>Zurück zum Lager System</span>
+            </a>
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Song suchen...">
+            <svg class="search-icon" viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div id="player-content">
+            <div class="loading">Lade Player...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentTrack = null;
+        let updateInterval = null;
+        let searchTimeout = null;
+        let progressInterval = null;
+        let localProgress = 0;
+        let lastUpdateTime = 0;
+
+        // Suche
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                searchResults.classList.remove('active');
+                searchResults.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => searchTracks(query), 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        async function searchTracks(query) {
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.tracks && data.tracks.length > 0) {
+                    displaySearchResults(data.tracks);
+                } else {
+                    searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: #b3b3b3;">Keine Ergebnisse gefunden</div>';
+                    searchResults.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Suchfehler:', error);
+            }
+        }
+
+        function displaySearchResults(tracks) {
+            searchResults.innerHTML = tracks.map(track => `
+                <div class="search-result-item" onclick="playTrack('${track.uri}')">
+                    <img src="${track.image || 'https://via.placeholder.com/50'}" class="search-result-image" alt="Album">
+                    <div class="search-result-info">
+                        <div class="search-result-name">${track.name}</div>
+                        <div class="search-result-artist">${track.artist}</div>
+                    </div>
+                </div>
+            `).join('');
+            searchResults.classList.add('active');
+        }
+
+        async function playTrack(uri) {
+            try {
+                await fetch('/api/play-track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uri })
+                });
+                searchResults.classList.remove('active');
+                searchInput.value = '';
+                setTimeout(fetchCurrentTrack, 500);
+            } catch (error) {
+                console.error('Fehler beim Abspielen:', error);
+            }
+        }
+
+        async function fetchCurrentTrack() {
+            try {
+                const response = await fetch('/api/current');
+                const data = await response.json();
+
+                if (data.error) {
+                    displayError(data.error);
+                    return;
+                }
+
+                if (!data.is_playing && !data.track_name) {
+                    displayNoTrack(data.message);
+                    return;
+                }
+
+                currentTrack = data;
+                localProgress = data.progress_ms;
+                lastUpdateTime = Date.now();
+                displayTrack(data);
+                startProgressUpdate();
+            } catch (error) {
+                displayError('Fehler beim Laden des Tracks');
+                console.error(error);
+            }
+        }
+
+        function startProgressUpdate() {
+            if (progressInterval) clearInterval(progressInterval);
+            
+            if (currentTrack && currentTrack.is_playing) {
+                progressInterval = setInterval(() => {
+                    const elapsed = Date.now() - lastUpdateTime;
+                    localProgress = currentTrack.progress_ms + elapsed;
+                    
+                    if (localProgress >= currentTrack.duration_ms) {
+                        localProgress = currentTrack.duration_ms;
+                        clearInterval(progressInterval);
+                    }
+                    
+                    updateProgressBar();
+                }, 100);
+            }
+        }
+
+        function updateProgressBar() {
+            if (!currentTrack) return;
+            
+            const progressPercent = (localProgress / currentTrack.duration_ms) * 100;
+            const progressFill = document.getElementById('progressFill');
+            const currentTime = document.getElementById('currentTime');
+            
+            if (progressFill) {
+                progressFill.style.width = `${progressPercent}%`;
+            }
+            if (currentTime) {
+                currentTime.textContent = formatTime(localProgress);
+            }
+        }
+
+        function displayTrack(track) {
+            const albumImage = track.album_image || 'https://via.placeholder.com/400?text=Kein+Cover';
+
+            document.getElementById('player-content').innerHTML = `
+                <img src="${albumImage}" alt="Album Cover" class="album-art">
+                
+                <div class="track-info">
+                    <div class="track-name">${track.track_name || 'Unbekannt'}</div>
+                    <div class="artist-name">${track.artist_name || 'Unbekannter Künstler'}</div>
+                    <div class="album-name">${track.album_name || 'Unbekanntes Album'}</div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="time-info">
+                        <span id="currentTime">${formatTime(track.progress_ms)}</span>
+                        <span id="totalTime">${formatTime(track.duration_ms)}</span>
+                    </div>
+                </div>
+
+                <div class="volume-container">
+                    <svg class="volume-icon" viewBox="0 0 24 24">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    </svg>
+                    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="${track.volume || 50}">
+                    <span class="volume-value" id="volumeValue">${track.volume || 50}%</span>
+                </div>
+
+                <div class="controls">
+                    <button onclick="previousTrack()" title="Vorheriger Track">
+                        <svg class="control-btn" viewBox="0 0 24 24">
+                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                        </svg>
+                    </button>
+
+                    <button onclick="togglePlayPause()" title="${track.is_playing ? 'Pause' : 'Abspielen'}">
+                        <svg class="play-pause-btn" viewBox="0 0 24 24" id="playPauseIcon">
+                            ${track.is_playing 
+                                ? '<path d="M6 4h4v16H6zm8 0h4v16h-4z"/>' 
+                                : '<path d="M8 5v14l11-7z"/>'}
+                        </svg>
+                    </button>
+
+                    <button onclick="nextTrack()" title="Nächster Track">
+                        <svg class="control-btn" viewBox="0 0 24 24">
+                            <path d="M16 18h2V6h-2zm-11-7l8.5-6v12z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="status">${track.is_playing ? '▶ Wird abgespielt' : '⏸ Pausiert'}</div>
+
+                <a href="/spotifylogout" class="logout-btn">Logout</a>
+            `;
+
+            const volumeSlider = document.getElementById('volumeSlider');
+            const volumeValue = document.getElementById('volumeValue');
+            
+            volumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value;
+                volumeValue.textContent = volume + '%';
+            });
+
+            volumeSlider.addEventListener('change', (e) => {
+                setVolume(e.target.value);
+            });
+        }
+
+        function displayNoTrack(message) {
+            if (progressInterval) clearInterval(progressInterval);
+            document.getElementById('player-content').innerHTML = `
+                <div class="status">${message || 'Kein Track wird gerade abgespielt'}</div>
+                <a href="/spotifylogout" class="logout-btn">Logout</a>
+            `;
+        }
+
+        function displayError(error) {
+            if (progressInterval) clearInterval(progressInterval);
+            document.getElementById('player-content').innerHTML = `
+                <div class="status error">Fehler: ${error}</div>
+                <a href="/spotifylogout" class="logout-btn">Logout</a>
+            `;
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        async function setVolume(volume) {
+            try {
+                await fetch('/api/volume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ volume: parseInt(volume) })
+                });
+            } catch (error) {
+                console.error('Fehler beim Ändern der Lautstärke:', error);
+            }
+        }
+
+        async function nextTrack() {
+            try {
+                await fetch('/api/next', { method: 'POST' });
+                setTimeout(fetchCurrentTrack, 500);
+            } catch (error) {
+                console.error('Fehler beim Überspringen:', error);
+            }
+        }
+
+        async function previousTrack() {
+            try {
+                await fetch('/api/previous', { method: 'POST' });
+                setTimeout(fetchCurrentTrack, 500);
+            } catch (error) {
+                console.error('Fehler beim Zurückspringen:', error);
+            }
+        }
+
+        async function togglePlayPause() {
+            try {
+                if (currentTrack && currentTrack.is_playing) {
+                    await fetch('/api/pause', { method: 'POST' });
+                    if (progressInterval) clearInterval(progressInterval);
+                } else {
+                    await fetch('/api/play', { method: 'POST' });
+                }
+                setTimeout(fetchCurrentTrack, 300);
+            } catch (error) {
+                console.error('Fehler beim Play/Pause:', error);
+            }
+        }
+
+        fetchCurrentTrack();
+        updateInterval = setInterval(fetchCurrentTrack, 5000);
+    </script>
+</body>
+</html>
