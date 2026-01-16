@@ -8,18 +8,25 @@
         <p class="text-xs sm:text-sm text-gray-500">ID: {{ session.user_id }}</p>
     </div>
     
-    <div class="grid grid-cols-2 gap-3 sm:gap-6 max-w-2xl mx-auto mb-6 sm:mb-10">
-        <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
-            <div class="flex flex-col items-center">
-                <i class="fas fa-plus text-2xl sm:text-4xl text-green-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
-                <h2 class="text-sm sm:text-xl font-semibold">Neues Lager</h2>
-            </div>
-        </a>
-        
+    <div class="grid grid-cols-3 gap-3 sm:gap-6 max-w-2xl mx-auto mb-6 sm:mb-10">
         <a href="/manage_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
             <div class="flex flex-col items-center">
                 <i class="fas fa-cog text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
                 <h2 class="text-sm sm:text-xl font-semibold">Lager verwalten</h2>
+            </div>
+        </a>
+
+        <a href="/spotify" class="bg-green-800 hover:bg-gray-700 active:bg-green-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fa-brands fa-spotify text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-xl font-semibold">Spotify Starten</h2>
+            </div>
+        </a>
+
+        <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-plus text-2xl sm:text-4xl text-green-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
+                <h2 class="text-sm sm:text-xl font-semibold">Neues Lager</h2>
             </div>
         </a>
     </div>
@@ -49,7 +56,7 @@
     
 
     <div class="mt-6 sm:mt-10 text-center">
-        <a href="/logout" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 touch-manipulation text-xs sm:text-base">
+        <a href="/logoutdms" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 touch-manipulation text-xs sm:text-base">
             <i class="fas fa-sign-out-alt mr-2 text-sm sm:text-base"></i>
             <span>Abmelden</span>
         </a>
