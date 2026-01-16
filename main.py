@@ -48,7 +48,7 @@ UPDATE_AVAILABLE = False
 
 SPOTIPY_CLIENT_ID = '3874b5a84f374215846967110bdbf996'
 SPOTIPY_CLIENT_SECRET = 'cc17981ed8e54363b24d245a628756bf'
-SPOTIPY_REDIRECT_URI = 'http://10.3.5.158:5000/callback'
+SPOTIPY_REDIRECT_URI = 'https://stageserver.tail734c06.ts.net/callback'
 
 SCOPE = 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
 
