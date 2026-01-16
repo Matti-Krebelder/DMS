@@ -39,7 +39,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "4.1"
+VERSION = "4.2"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
