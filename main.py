@@ -23,6 +23,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import time
 import zipfile
 from pathlib import Path
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -40,6 +42,223 @@ app.secret_key = 'your-secret-key'
 VERSION = "3.0"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
+
+#------------------------Spotify Part--------------------------------------
+
+
+SPOTIPY_CLIENT_ID = '3874b5a84f374215846967110bdbf996'
+SPOTIPY_CLIENT_SECRET = 'cc17981ed8e54363b24d245a628756bf'
+SPOTIPY_REDIRECT_URI = 'http://127.0.0.1:5000/callback'
+
+SCOPE = 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
+
+def get_spotify_client():
+    """Erstellt einen authentifizierten Spotify Client"""
+    cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
+    auth_manager = SpotifyOAuth(
+        client_id=SPOTIPY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri=SPOTIPY_REDIRECT_URI,
+        scope=SCOPE,
+        cache_handler=cache_handler,
+        show_dialog=True
+    )
+    
+    if not auth_manager.validate_token(cache_handler.get_cached_token()):
+        return None
+    
+    return spotipy.Spotify(auth_manager=auth_manager)
+
+@app.route('/spotify')
+def spotify_auth():
+    """Spotify Authentifizierung"""
+    sp = get_spotify_client()
+    if sp is None:
+        cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
+        auth_manager = SpotifyOAuth(
+            client_id=SPOTIPY_CLIENT_ID,
+            client_secret=SPOTIPY_CLIENT_SECRET,
+            redirect_uri=SPOTIPY_REDIRECT_URI,
+            scope=SCOPE,
+            cache_handler=cache_handler,
+            show_dialog=True
+        )
+        auth_url = auth_manager.get_authorize_url()
+        return redirect(auth_url)
+    
+    return redirect('/player')
+
+@app.route('/callback')
+def callback():
+    """Callback nach Spotify Authentifizierung"""
+    cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
+    auth_manager = SpotifyOAuth(
+        client_id=SPOTIPY_CLIENT_ID,
+        client_secret=SPOTIPY_CLIENT_SECRET,
+        redirect_uri=SPOTIPY_REDIRECT_URI,
+        scope=SCOPE,
+        cache_handler=cache_handler,
+        show_dialog=True
+    )
+    
+    if request.args.get('code'):
+        auth_manager.get_access_token(request.args.get('code'))
+        return redirect('/player')
+    
+    return redirect('/')
+
+@app.route('/player')
+def player():
+    """Player Seite"""
+    sp = get_spotify_client()
+    if sp is None:
+        return redirect('/spotify')
+    
+    return render_template('player.html')
+
+@app.route('/api/current')
+def current_track():
+    """API Endpoint für aktuell gespieltes Lied"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        current = sp.current_playback()
+        if current and current['item']:
+            track = current['item']
+            return jsonify({
+                'is_playing': current['is_playing'],
+                'track_name': track['name'],
+                'artist_name': ', '.join([artist['name'] for artist in track['artists']]),
+                'album_name': track['album']['name'],
+                'album_image': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'duration_ms': track['duration_ms'],
+                'progress_ms': current['progress_ms'],
+                'volume': current['device']['volume_percent'] if current['device'] else 50
+            })
+        else:
+            return jsonify({'is_playing': False, 'message': 'Kein Track wird gerade abgespielt'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/next', methods=['POST'])
+def next_track():
+    """Nächster Track"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        sp.next_track()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/previous', methods=['POST'])
+def previous_track():
+    """Vorheriger Track"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        sp.previous_track()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/play', methods=['POST'])
+def play():
+    """Wiedergabe starten"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        sp.start_playback()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pause', methods=['POST'])
+def pause():
+    """Wiedergabe pausieren"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        sp.pause_playback()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/volume', methods=['POST'])
+def set_volume():
+    """Lautstärke ändern"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        volume = int(request.json.get('volume', 50))
+        volume = max(0, min(100, volume))
+        sp.volume(volume)
+        return jsonify({'success': True, 'volume': volume})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/search')
+def search_tracks():
+    """Tracks suchen"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    query = request.args.get('q', '')
+    if not query or len(query) < 2:
+        return jsonify({'tracks': []})
+    
+    try:
+        results = sp.search(q=query, type='track', limit=10)
+        tracks = []
+        for item in results['tracks']['items']:
+            tracks.append({
+                'id': item['id'],
+                'uri': item['uri'],
+                'name': item['name'],
+                'artist': ', '.join([artist['name'] for artist in item['artists']]),
+                'album': item['album']['name'],
+                'image': item['album']['images'][0]['url'] if item['album']['images'] else None,
+                'duration_ms': item['duration_ms']
+            })
+        return jsonify({'tracks': tracks})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/play-track', methods=['POST'])
+def play_track():
+    """Bestimmten Track abspielen"""
+    sp = get_spotify_client()
+    if sp is None:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        track_uri = request.json.get('uri')
+        if track_uri:
+            sp.start_playback(uris=[track_uri])
+            return jsonify({'success': True})
+        return jsonify({'error': 'No URI provided'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/spotifylogout')
+def spotify_logout():
+    """Logout"""
+    session.clear()
+    return redirect('/spotify')
+#-----------------------Spotify end ---------------------------------------
 
 def check_version():
     global LATEST_VERSION, UPDATE_AVAILABLE
@@ -2317,7 +2536,7 @@ def update():
     except Exception as e:
         return f"Fehler beim Update: {str(e)}", 500
 
-@app.route('/logout')
+@app.route('/logoutdms')
 def logout():
     session.clear()
     return redirect(url_for('login'))
