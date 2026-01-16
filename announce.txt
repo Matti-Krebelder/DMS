@@ -1,5 +1,1 @@
-02.11.2025 14:27 Das ist ein test
-
-06.11.2025 13:40 Update 2.9 mit neuer funktion zum Hinzufügen von geräten mit Mänge e.t.c
-
-06.11.2025 16:30 Update auf 3.0 Jetzt Neu Auto Migration von veralteten Datenbanken.
+16.01.2026 Comming Soon: Spotify Live Player
