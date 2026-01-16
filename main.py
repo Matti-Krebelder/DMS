@@ -52,6 +52,11 @@ SPOTIPY_REDIRECT_URI = 'http://10.3.5.158:5000/callback'
 
 SCOPE = 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
 
+@app.route('/clear-spotify-cache')
+def clear_spotify_cache():
+    session.clear()
+    return "Cache gelöscht! Gehe zu <a href='/spotify'>/spotify</a>"
+
 def get_spotify_client():
     """Erstellt einen authentifizierten Spotify Client"""
     cache_handler = spotipy.cache_handler.FlaskSessionCacheHandler(session)
