@@ -34,21 +34,34 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from PIL import Image as PILImage
 import requests
+from meross_iot.http_api import MerossHttpClient
+from meross_iot.manager import MerossManager
+from meross_iot.controller.mixins.toggle import ToggleXMixin
+from meross_iot.model.enums import OnlineStatus
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 app.secret_key = 'your-secret-key'
 
-VERSION = "4.4"
+VERSION = "5.0"
 LATEST_VERSION = None
 UPDATE_AVAILABLE = False
 
 #------------------------Spotify Part--------------------------------------
 
+load_dotenv()
 
-SPOTIPY_CLIENT_ID = '3874b5a84f374215846967110bdbf996'
-SPOTIPY_CLIENT_SECRET = 'cc17981ed8e54363b24d245a628756bf'
-SPOTIPY_REDIRECT_URI = 'https://stageserver.tail734c06.ts.net/callback'
+MEROSS_EMAIL = os.getenv("MEROSS_EMAIL")
+MEROSS_PASSWORD = os.getenv("MEROSS_PASSWORD")
+API_BASE = "https://iotx-eu.meross.com"
+
+
+
+SPOTIPY_CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
+SPOTIPY_CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
+SPOTIPY_REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
 
 SCOPE = 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
 
