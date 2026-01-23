@@ -3,101 +3,331 @@
 {% block content %}
 <div class="px-4 sm:px-0 pb-4">
 
-    <div class="text-center mb-6 sm:mb-8">
-        <h1 class="text-2xl sm:text-4xl font-bold mb-1">Hallo {{ session.user_name }}</h1>
-        <p class="text-xs sm:text-sm text-gray-500">ID: {{ session.user_id }}</p>
+    <!-- Header Section -->
+    <div class="text-center mb-8 sm:mb-12">
+        <p class="text-gold/60 text-xs sm:text-sm uppercase tracking-widest mb-2">Willkommen zurueck</p>
+        <h1 class="text-3xl sm:text-5xl font-light mb-2">
+            Hallo <span class="text-gold font-medium">{{ session.user_name }}</span>
+        </h1>
     </div>
     
-    <div class="grid grid-cols-3 gap-3 sm:gap-6 max-w-2xl mx-auto mb-6 sm:mb-10">
-        <a href="/manage_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
-            <div class="flex flex-col items-center">
-                <i class="fas fa-cog text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
-                <h2 class="text-sm sm:text-xl font-semibold">Lager verwalten</h2>
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-3 gap-3 sm:gap-6 max-w-2xl mx-auto mb-8 sm:mb-12">
+        <a href="/manage_lager" class="action-card group">
+            <div class="action-card-inner">
+                <div class="action-icon bg-blue-500/10 group-hover:bg-blue-500/20">
+                    <i class="fas fa-cog text-xl sm:text-3xl text-blue-400"></i>
+                </div>
+                <h2 class="text-xs sm:text-base font-medium mt-3 sm:mt-4 text-white/80 group-hover:text-white">Lager verwalten</h2>
             </div>
         </a>
 
-        <a href="/spotify" class="bg-green-800 hover:bg-gray-700 active:bg-green-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
-            <div class="flex flex-col items-center">
-                <i class="fa-brands fa-spotify text-2xl sm:text-4xl text-blue-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
-                <h2 class="text-sm sm:text-xl font-semibold">Spotify Starten</h2>
+        <a href="/spotify" class="action-card group spotify-card">
+            <div class="action-card-inner">
+                <div class="action-icon bg-green-500/10 group-hover:bg-green-500/20">
+                    <i class="fa-brands fa-spotify text-xl sm:text-3xl text-green-400"></i>
+                </div>
+                <h2 class="text-xs sm:text-base font-medium mt-3 sm:mt-4 text-white/80 group-hover:text-white">Spotify Starten</h2>
             </div>
         </a>
 
-        <a href="/create_lager" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-4 sm:p-8 rounded-lg sm:rounded-xl transition-all duration-200 group touch-manipulation">
-            <div class="flex flex-col items-center">
-                <i class="fas fa-plus text-2xl sm:text-4xl text-green-500 mb-2 sm:mb-4 group-hover:scale-110 transition-transform"></i>
-                <h2 class="text-sm sm:text-xl font-semibold">Neues Lager</h2>
+        <a href="/create_lager" class="action-card group">
+            <div class="action-card-inner">
+                <div class="action-icon bg-gold/10 group-hover:bg-gold/20">
+                    <i class="fas fa-plus text-xl sm:text-3xl text-gold"></i>
+                </div>
+                <h2 class="text-xs sm:text-base font-medium mt-3 sm:mt-4 text-white/80 group-hover:text-white">Neues Lager</h2>
             </div>
         </a>
     </div>
     
-    <div>
-        <h3 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-6 text-center">Meine Lager</h3>
+    <!-- Lager Section -->
+    <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+            <div class="h-px flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
+            <h3 class="text-base sm:text-xl font-light text-white/60 uppercase tracking-widest">Meine Lager</h3>
+            <div class="h-px flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
+        </div>
         
         {% if lagers %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {% for lager in lagers %}
-            <a href="/lager/{{ lager[0] }}" class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 p-3.5 sm:p-6 rounded-lg sm:rounded-xl transition-all duration-200 touch-manipulation group">
-                <div class="flex items-center sm:flex-col sm:items-center sm:text-center gap-3 sm:gap-0">
-                    <i class="fas fa-warehouse text-lg sm:text-2xl text-yellow-500 sm:mb-3 group-hover:scale-110 transition-transform flex-shrink-0"></i>
-                    <h4 class="font-semibold text-sm sm:text-lg truncate flex-1 sm:flex-none">{{ lager[1] }}</h4>
+            <a href="/lager/{{ lager[0] }}" class="lager-card group">
+                <div class="flex items-center sm:flex-col sm:items-center sm:text-center gap-4 sm:gap-0">
+                    <div class="lager-icon">
+                        <i class="fas fa-warehouse text-lg sm:text-2xl text-gold"></i>
+                    </div>
+                    <h4 class="font-medium text-sm sm:text-lg truncate flex-1 sm:flex-none text-white/80 group-hover:text-white">{{ lager[1] }}</h4>
                 </div>
+                <div class="lager-glow"></div>
             </a>
             {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-6 sm:py-12 bg-gray-800/50 rounded-lg sm:rounded-xl">
-            <i class="fas fa-warehouse text-3xl sm:text-5xl text-gray-600 mb-3 sm:mb-4"></i>
-            <p class="text-gray-400 text-xs sm:text-base">Noch keine Lager vorhanden</p>
-            <p class="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">Erstelle dein erstes Lager</p>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-warehouse text-3xl sm:text-5xl text-white/20"></i>
+            </div>
+            <p class="text-white/40 text-sm sm:text-base mt-4">Noch keine Lager vorhanden</p>
+            <p class="text-white/20 text-xs sm:text-sm mt-1">Erstelle dein erstes Lager</p>
+            <a href="/create_lager" class="empty-cta">
+                <i class="fas fa-plus mr-2"></i>
+                Lager erstellen
+            </a>
         </div>
         {% endif %}
     </div>
     
-
-    <div class="mt-6 sm:mt-10 text-center">
-        <a href="/logoutdms" class="inline-flex items-center justify-center px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 touch-manipulation text-xs sm:text-base">
-            <i class="fas fa-sign-out-alt mr-2 text-sm sm:text-base"></i>
+    <!-- Logout -->
+    <div class="mt-10 sm:mt-16 text-center">
+        <a href="/logoutdms" class="logout-btn group">
+            <i class="fas fa-sign-out-alt mr-2 group-hover:translate-x-[-2px] transition-transform"></i>
             <span>Abmelden</span>
         </a>
     </div>
 </div>
 
 <style>
-    /* Mobile viewport optimization */
+    /* Gold color variable */
+    .text-gold { color: #d4a853; }
+    .bg-gold\/10 { background-color: rgba(212, 168, 83, 0.1); }
+    .bg-gold\/20 { background-color: rgba(212, 168, 83, 0.2); }
+    
+    /* Action Cards */
+    .action-card {
+        position: relative;
+        background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 16px;
+        padding: 1.25rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    
+    @media (min-width: 640px) {
+        .action-card {
+            padding: 2rem;
+            border-radius: 20px;
+        }
+    }
+    
+    .action-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 0%, rgba(212, 168, 83, 0.08) 0%, transparent 60%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .action-card:hover::before {
+        opacity: 1;
+    }
+    
+    .action-card:hover {
+        border-color: rgba(212, 168, 83, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 168, 83, 0.1);
+    }
+    
+    .action-card:active {
+        transform: translateY(0);
+    }
+    
+    .action-card-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    
+    @media (min-width: 640px) {
+        .action-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+        }
+    }
+    
+    .action-card:hover .action-icon {
+        transform: scale(1.1);
+    }
+    
+    /* Spotify Card Special */
+    .spotify-card:hover {
+        border-color: rgba(30, 215, 96, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(30, 215, 96, 0.15);
+    }
+    
+    .spotify-card::before {
+        background: radial-gradient(circle at 50% 0%, rgba(30, 215, 96, 0.1) 0%, transparent 60%);
+    }
+    
+    /* Lager Cards */
+    .lager-card {
+        position: relative;
+        background: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+    
+    @media (min-width: 640px) {
+        .lager-card {
+            padding: 1.5rem;
+            border-radius: 16px;
+        }
+    }
+    
+    .lager-card:hover {
+        border-color: rgba(212, 168, 83, 0.25);
+        background: linear-gradient(145deg, rgba(212, 168, 83, 0.05) 0%, rgba(255,255,255,0.02) 100%);
+        transform: translateY(-1px);
+    }
+    
+    .lager-card:active {
+        transform: scale(0.98);
+    }
+    
+    .lager-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(212, 168, 83, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+    }
+    
+    @media (min-width: 640px) {
+        .lager-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            margin-bottom: 0.75rem;
+        }
+    }
+    
+    .lager-card:hover .lager-icon {
+        background: rgba(212, 168, 83, 0.15);
+        transform: scale(1.05);
+    }
+    
+    .lager-glow {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .lager-card:hover .lager-glow {
+        opacity: 1;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(145deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+        border: 1px dashed rgba(255,255,255,0.1);
+        border-radius: 20px;
+    }
+    
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        background: rgba(255,255,255,0.03);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .empty-cta {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 1.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, rgba(212, 168, 83, 0.15) 0%, rgba(212, 168, 83, 0.05) 100%);
+        border: 1px solid rgba(212, 168, 83, 0.3);
+        border-radius: 10px;
+        color: #d4a853;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .empty-cta:hover {
+        background: linear-gradient(135deg, rgba(212, 168, 83, 0.25) 0%, rgba(212, 168, 83, 0.1) 100%);
+        border-color: rgba(212, 168, 83, 0.5);
+        transform: translateY(-1px);
+    }
+    
+    /* Logout Button */
+    .logout-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        background: rgba(239, 68, 68, 0.05);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        border-radius: 10px;
+        color: rgba(239, 68, 68, 0.7);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: rgba(239, 68, 68, 0.9);
+    }
+    
+    .logout-btn:active {
+        transform: scale(0.98);
+    }
+    
+    /* Mobile optimizations */
     @media (max-width: 640px) {
         body {
             min-height: 100vh;
             min-height: -webkit-fill-available;
         }
-        
-        /* Reduce vertical spacing further on small screens */
-        .max-w-7xl {
-            padding-top: 1rem !important;
-            padding-bottom: 0.5rem !important;
-        }
     }
     
-    /* Enhanced mobile touch targets */
+    /* Touch handling */
     .touch-manipulation {
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         -webkit-touch-callout: none;
         user-select: none;
     }
     
-    /* Smooth transitions for mobile */
-    @media (max-width: 640px) {
-        .group:active i {
-            transform: scale(1.05);
-        }
-    }
-    
-    /* Prevent zoom on double tap */
     a, button {
         touch-action: manipulation;
     }
     
-    /* Ensure text doesn't overflow */
     .truncate {
         overflow: hidden;
         text-overflow: ellipsis;
