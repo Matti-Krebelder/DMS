@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Smart Home Panel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-card: #161616;
+            --bg-card-hover: #1a1a1a;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-active: rgba(255,255,255,0.12);
+            --text-primary: #ffffff;
+            --text-secondary: #737373;
+            --text-muted: #525252;
+            --accent-gold: #d4a853;
+            --accent-gold-dim: rgba(212,168,83,0.15);
+            --accent-warm: #f5a623;
+            --glow-gold: rgba(212,168,83,0.4);
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.3;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-gold);
+            top: -200px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: #8b5cf6;
+            bottom: -150px;
+            left: -100px;
+            animation-delay: -7s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            padding: 32px 32px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header-left p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-active);
+        }
+
+        .icon-btn:active {
+            transform: scale(0.95);
+        }
+
+        .icon-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: var(--text-secondary);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: relative;
+            z-index: 10;
+            padding: 0 32px 24px;
+            display: flex;
+            gap: 16px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-dot.warning {
+            background: var(--accent-warm);
+            box-shadow: 0 0 8px var(--accent-warm);
+        }
+
+        /* Main Grid */
+        .main-content {
+            position: relative;
+            z-index: 10;
+            padding: 0 32px 32px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            padding-left: 4px;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        /* Device Card */
+        .device-card {
+            position: relative;
+            aspect-ratio: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.03), transparent 70%);
+            pointer-events: none;
+        }
+
+        .device-card:hover {
+            border-color: var(--border-active);
+            transform: translateY(-2px);
+        }
+
+        .device-card:active {
+            transform: scale(0.98);
+        }
+
+        .device-card.on {
+            background: linear-gradient(145deg, #1f1a14 0%, #161310 100%);
+            border-color: var(--accent-gold);
+            box-shadow: 
+                0 0 0 1px rgba(212,168,83,0.1),
+                0 8px 32px -8px var(--glow-gold),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .device-card.on::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, var(--accent-gold-dim), transparent 50%);
+            pointer-events: none;
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        .device-card.partial {
+            background: linear-gradient(145deg, #1a1816 0%, #141210 100%);
+            border-color: rgba(212,168,83,0.4);
+        }
+
+        .device-card.offline {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .device-icon-wrap {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .device-card.on .device-icon-wrap {
+            background: var(--accent-gold-dim);
+        }
+
+        .device-icon-wrap svg {
+            width: 26px;
+            height: 26px;
+            stroke: var(--text-secondary);
+            stroke-width: 1.5;
+            fill: none;
+            transition: all 0.3s ease;
+        }
+
+        .device-card.on .device-icon-wrap svg {
+            stroke: var(--accent-gold);
+            filter: drop-shadow(0 0 8px var(--glow-gold));
+        }
+
+        .device-badge {
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .device-card.on .device-badge {
+            background: var(--accent-gold-dim);
+            color: var(--accent-gold);
+        }
+
+        .device-footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .device-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .device-status {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .device-card.on .device-status {
+            color: var(--accent-gold);
+        }
+
+        /* Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .sidebar-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 380px;
+            max-width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-subtle);
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 28px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .close-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 32px;
+        }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .create-group-btn {
+            width: 100%;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #c49a47 100%);
+            border: none;
+            border-radius: 14px;
+            color: #0a0a0a;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .create-group-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .create-group-btn:active {
+            transform: scale(0.98);
+        }
+
+        .create-group-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: #0a0a0a;
+            stroke-width: 2;
+        }
+
+        .group-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .group-item:hover {
+            border-color: var(--border-active);
+        }
+
+        .group-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .group-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gold-dim);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .group-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-gold);
+            stroke-width: 1.5;
+        }
+
+        .group-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .group-count {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .delete-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(239,68,68,0.1);
+            border: none;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239,68,68,0.2);
+        }
+
+        .delete-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--danger);
+            stroke-width: 1.5;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 200;
+            padding: 24px;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            overflow: hidden;
+            transform: scale(0.95) translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.open .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 24px 24px 0;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px var(--accent-gold-dim);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .device-select-list {
+            max-height: 240px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 8px;
+        }
+
+        .device-select-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .device-select-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .device-select-list::-webkit-scrollbar-thumb {
+            background: var(--border-active);
+            border-radius: 4px;
+        }
+
+        .device-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .device-checkbox:hover {
+            border-color: var(--border-active);
+        }
+
+        .device-checkbox.selected {
+            border-color: var(--accent-gold);
+            background: var(--accent-gold-dim);
+        }
+
+        .checkbox-custom {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-active);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .device-checkbox.selected .checkbox-custom {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+
+        .checkbox-custom svg {
+            width: 14px;
+            height: 14px;
+            stroke: #0a0a0a;
+            stroke-width: 3;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .device-checkbox.selected .checkbox-custom svg {
+            opacity: 1;
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .modal-footer {
+            padding: 0 24px 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #c49a47 100%);
+            color: #0a0a0a;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Clock */
+        .clock {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-muted);
+            stroke-width: 1;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 24px 20px 16px;
+            }
+
+            .header-left h1 {
+                font-size: 24px;
+            }
+
+            .status-bar {
+                padding: 0 20px 20px;
+                flex-wrap: wrap;
+            }
+
+            .main-content {
+                padding: 0 20px 20px;
+            }
+
+            .devices-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .device-card {
+                border-radius: 20px;
+                padding: 16px;
+            }
+
+            .device-icon-wrap {
+                width: 44px;
+                height: 44px;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <h1>Smart Home</h1>
+            <p id="clock" class="clock">--:--</p>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" id="menuBtn" aria-label="Menu">
+                <svg viewBox="0 0 24 24">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            <span id="deviceCount">0 Geraete online</span>
+        </div>
+        <div class="status-pill">
+            <span class="status-dot" id="connectionDot"></span>
+            <span>Verbunden</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <p class="section-label">Beleuchtung &amp; Gruppen</p>
+        <div class="devices-grid" id="devicesGrid">
+            <!-- Devices will be rendered here -->
+        </div>
+    </main>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Einstellungen</h2>
+            <button class="close-btn" id="closeBtn" aria-label="Schliessen">
+                <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sidebar-content">
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">Neue Gruppe</p>
+                <button class="create-group-btn" id="createGroupBtn">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Gruppe erstellen
+                </button>
+            </div>
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">Gruppen</p>
+                <div class="group-list" id="groupList">
+                    <!-- Groups will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Neue Gruppe</h2>
+                <p>Waehle Geraete fuer diese Gruppe</p>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label class="input-label" for="groupName">Gruppenname</label>
+                    <input type="text" id="groupName" class="input-field" placeholder="z.B. Wohnzimmer">
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Geraete auswaehlen</label>
+                    <div class="device-select-list" id="deviceSelectList">
+                        <!-- Device checkboxes will be rendered here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-secondary" id="cancelBtn">Abbrechen</button>
+                <button class="modal-btn btn-primary" id="saveGroupBtn">Erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let devices = [];
+        let groups = [];
+        let selectedDevices = new Set();
+
+        // DOM Elements
+        const devicesGrid = document.getElementById('devicesGrid');
+        const groupList = document.getElementById('groupList');
+        const deviceSelectList = document.getElementById('deviceSelectList');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const groupNameInput = document.getElementById('groupName');
+        const clockEl = document.getElementById('clock');
+        const deviceCountEl = document.getElementById('deviceCount');
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', openSidebar);
+        document.getElementById('closeBtn').addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+        document.getElementById('createGroupBtn').addEventListener('click', openModal);
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+        document.getElementById('saveGroupBtn').addEventListener('click', saveGroup);
+
+        // Sidebar Functions
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('open');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('open');
+        }
+
+        // Modal Functions
+        function openModal() {
+            selectedDevices.clear();
+            groupNameInput.value = '';
+            renderDeviceSelect();
+            modalOverlay.classList.add('open');
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('open');
+        }
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' };
+            clockEl.textContent = now.toLocaleDateString('de-DE', options);
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Light Icon SVG
+        const lightIcon = `<svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2v1M4.22 4.22l.71.71M1 12h2M4.22 19.78l.71-.71M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>`;
+        const groupIcon = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+        const trashIcon = `<svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/></svg>`;
+        const checkIcon = `<svg viewBox="0 0 24 24"><polyline points="20,6 9,17 4,12"/></svg>`;
+
+        // API Functions
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                devices = await res.json();
+                renderDevices();
+                updateDeviceCount();
+            } catch (err) {
+                console.error('Failed to load devices:', err);
+            }
+        }
+
+        async function loadGroups() {
+            try {
+                const res = await fetch('/api/groups');
+                groups = await res.json();
+                renderDevices();
+                renderGroupList();
+            } catch (err) {
+                console.error('Failed to load groups:', err);
+            }
+        }
+
+        async function toggleDevice(uuid, type, state) {
+            const url = type === 'group' ? `/api/group/toggle/${uuid}` : `/api/toggle/${uuid}`;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state })
+                });
+                setTimeout(() => {
+                    loadDevices();
+                    loadGroups();
+                }, 100);
+            } catch (err) {
+                console.error('Failed to toggle device:', err);
+            }
+        }
+
+        async function saveGroup() {
+            const name = groupNameInput.value.trim();
+            if (!name || selectedDevices.size === 0) return;
+
+            try {
+                await fetch('/api/group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, devices: Array.from(selectedDevices) })
+                });
+                closeModal();
+                loadGroups();
+            } catch (err) {
+                console.error('Failed to save group:', err);
+            }
+        }
+
+        async function deleteGroup(gid) {
+            try {
+                await fetch(`/api/group/${gid}`, { method: 'DELETE' });
+                loadGroups();
+            } catch (err) {
+                console.error('Failed to delete group:', err);
+            }
+        }
+
+        // Render Functions
+        function updateDeviceCount() {
+            const online = devices.filter(d => d.online !== false).length;
+            deviceCountEl.textContent = `${online} ${online === 1 ? 'Geraet' : 'Geraete'} online`;
+        }
+
+        function renderDevices() {
+            const all = [...groups, ...devices];
+            
+            if (all.length === 0) {
+                devicesGrid.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2v1M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+                        <p>Keine Geraete gefunden</p>
+                    </div>
+                `;
+                return;
+            }
+
+            devicesGrid.innerHTML = all.map(d => {
+                const isOn = d.is_on;
+                const isPartial = d.partial_on;
+                const isOffline = d.online === false;
+                const isGroup = d.type === 'group';
+                
+                let classes = 'device-card';
+                if (isOn) classes += ' on';
+                if (isPartial) classes += ' partial';
+                if (isOffline) classes += ' offline';
+
+                return `
+                    <div class="${classes}" onclick="toggleDevice('${d.uuid}', '${d.type || 'device'}', ${!isOn})">
+                        <div class="device-header">
+                            <div class="device-icon-wrap">
+                                ${isGroup ? groupIcon : lightIcon}
+                            </div>
+                            ${d.device_count ? `<span class="device-badge">${d.device_count}</span>` : ''}
+                        </div>
+                        <div class="device-footer">
+                            <p class="device-name">${d.name}</p>
+                            <p class="device-status">${isOn ? 'An' : isPartial ? 'Teilweise an' : 'Aus'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderGroupList() {
+            if (groups.length === 0) {
+                groupList.innerHTML = `
+                    <div class="empty-state" style="padding: 24px 0;">
+                        <p>Keine Gruppen vorhanden</p>
+                    </div>
+                `;
+                return;
+            }
+
+            groupList.innerHTML = groups.map(g => `
+                <div class="group-item">
+                    <div class="group-info">
+                        <div class="group-icon">${groupIcon}</div>
+                        <div>
+                            <p class="group-name">${g.name}</p>
+                            <p class="group-count">${g.device_count} ${g.device_count === 1 ? 'Geraet' : 'Geraete'}</p>
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteGroup('${g.uuid}')" aria-label="Loeschen">
+                        ${trashIcon}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderDeviceSelect() {
+            deviceSelectList.innerHTML = devices.map(d => `
+                <div class="device-checkbox ${selectedDevices.has(d.uuid) ? 'selected' : ''}" 
+                     onclick="toggleDeviceSelect('${d.uuid}')">
+                    <div class="checkbox-custom">${checkIcon}</div>
+                    <span class="checkbox-label">${d.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function toggleDeviceSelect(uuid) {
+            if (selectedDevices.has(uuid)) {
+                selectedDevices.delete(uuid);
+            } else {
+                selectedDevices.add(uuid);
+            }
+            renderDeviceSelect();
+        }
+
+        // Initialize
+        loadDevices();
+        loadGroups();
+        setInterval(() => {
+            loadDevices();
+            loadGroups();
+        }, 3000);
+    </script>
+</body>
+</html>
