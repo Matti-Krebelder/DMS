@@ -31,6 +31,15 @@
             </div>
         </a>
 
+        <a href="/smarthome" class="action-card group smarthome-card">
+            <div class="action-card-inner">
+                <div class="action-icon bg-violet-500/10 group-hover:bg-violet-500/20">
+                    <i class="fa-solid fa-house-signal text-xl sm:text-3xl text-violet-400"></i>
+                </div>
+                <h2 class="text-xs sm:text-base font-medium mt-3 sm:mt-4 text-white/80 group-hover:text-white">Smart Home</h2>
+            </div>
+        </a>
+
         <a href="/create_lager" class="action-card group">
             <div class="action-card-inner">
                 <div class="action-icon bg-gold/10 group-hover:bg-gold/20">
@@ -173,6 +182,16 @@
     
     .spotify-card::before {
         background: radial-gradient(circle at 50% 0%, rgba(30, 215, 96, 0.1) 0%, transparent 60%);
+    }
+    
+    /* Smart Home Card Special */
+    .smarthome-card:hover {
+        border-color: rgba(139, 92, 246, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.15);
+    }
+    
+    .smarthome-card::before {
+        background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
     }
     
     /* Lager Cards */
