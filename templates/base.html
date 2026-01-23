@@ -2,7 +2,7 @@
 <html class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>{{ title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -22,101 +22,191 @@
                             500: '#737373',
                             600: '#525252',
                             700: '#404040',
+                            750: '#333333',
                             800: '#262626',
-                            850: '#1f1f1f',
-                            900: '#171717',
+                            850: '#1a1a1a',
+                            900: '#161616',
+                            925: '#111111',
                             950: '#0a0a0a'
                         },
+                        'gold': {
+                            50: 'rgba(212,168,83,0.05)',
+                            100: 'rgba(212,168,83,0.1)',
+                            200: 'rgba(212,168,83,0.15)',
+                            300: 'rgba(212,168,83,0.25)',
+                            400: '#c49a47',
+                            500: '#d4a853',
+                            600: '#e0b85f',
+                            700: '#e8c56f',
+                            glow: 'rgba(212,168,83,0.4)'
+                        },
                         'blue': {
-                            50: '#eff6ff',
+                            50: 'rgba(59,130,246,0.05)',
+                            100: 'rgba(59,130,246,0.1)',
+                            200: 'rgba(59,130,246,0.15)',
                             500: '#3b82f6',
                             600: '#2563eb',
                             700: '#1d4ed8'
                         },
                         'green': {
-                            50: '#f0fdf4',
                             500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d'
-                        },
-                        'orange': {
-                            500: '#f97316',
-                            600: '#ea580c',
-                            700: '#c2410c'
+                            600: '#16a34a'
                         },
                         'red': {
                             500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c'
+                            600: '#dc2626'
                         },
-                        'purple': {
-                            500: '#a855f7',
-                            600: '#9333ea',
-                            700: '#7c3aed'
+                        'orange': {
+                            500: '#f5a623'
                         }
                     },
                     fontFamily: {
-                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif']
                     },
                     borderRadius: {
                         'xl': '12px',
-                        '2xl': '16px'
+                        '2xl': '16px',
+                        '3xl': '20px'
                     },
                     boxShadow: {
-                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                        'gold': '0 0 0 1px rgba(212,168,83,0.1), 0 8px 32px -8px rgba(212,168,83,0.4)',
+                        'card': '0 4px 24px -8px rgba(0,0,0,0.3)'
                     }
                 }
             }
         }
     </script>
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         ::-webkit-scrollbar {
             width: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #262626;
+            background: #111111;
         }
         ::-webkit-scrollbar-thumb {
-            background: #404040;
+            background: rgba(255,255,255,0.1);
             border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #525252;
+            background: rgba(255,255,255,0.15);
         }
-        
-        .glass-effect {
-            backdrop-filter: blur(12px);
-            background: rgba(38, 38, 38, 0.8);
-            border: 1px solid rgba(64, 64, 64, 0.3);
+
+        /* Ambient Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
         }
-        
-        .gradient-border {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
-            border: 1px solid rgba(59, 130, 246, 0.2);
+
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.2;
+            animation: float 20s ease-in-out infinite;
         }
-        
+
+        .orb-gold {
+            width: 400px;
+            height: 400px;
+            background: #d4a853;
+            top: -200px;
+            right: -100px;
+        }
+
+        .orb-blue {
+            width: 300px;
+            height: 300px;
+            background: #3b82f6;
+            bottom: -150px;
+            left: -100px;
+            animation-delay: -7s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Glass Effect */
+        .glass-nav {
+            backdrop-filter: blur(20px);
+            background: rgba(17, 17, 17, 0.85);
+        }
+
+        /* Animations */
         .animate-fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        .group-header {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(168, 85, 247, 0.05));
-            border-left: 3px solid #3b82f6;
+
+        @keyframes modal-in {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        #notificationBadge {
-            animation: pulse 2s ease-in-out infinite;
+        .modal-animate {
+            animation: modal-in 0.3s ease;
         }
 
-        @keyframes pulse {
+        /* Badge Pulse */
+        @keyframes pulse-badge {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
+        }
+
+        .badge-pulse {
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        /* Group Header Style */
+        .group-header-premium {
+            background: linear-gradient(135deg, rgba(212,168,83,0.1), rgba(212,168,83,0.02));
+            border-left: 3px solid #d4a853;
+        }
+
+        /* Device Card Active Glow */
+        .device-active {
+            background: linear-gradient(145deg, #1f1a14 0%, #161310 100%);
+            border-color: #d4a853;
+            box-shadow: 0 0 0 1px rgba(212,168,83,0.1), 0 8px 32px -8px rgba(212,168,83,0.4);
+        }
+
+        /* Input Focus Gold */
+        .input-gold:focus {
+            border-color: #d4a853;
+            box-shadow: 0 0 0 3px rgba(212,168,83,0.15);
+            outline: none;
+        }
+
+        /* Button Active Scale */
+        .btn-scale:active {
+            transform: scale(0.98);
+        }
+
+        /* Status Dot Glow */
+        .status-glow-green {
+            box-shadow: 0 0 8px #22c55e;
+        }
+        .status-glow-orange {
+            box-shadow: 0 0 8px #f5a623;
+        }
+        .status-glow-red {
+            box-shadow: 0 0 8px #ef4444;
         }
     </style>
 </head>
@@ -127,43 +217,55 @@
     data-latest-version="{{ latest_version }}"
     {% endif %}
 >
-    <nav class="glass-effect border-b border-gray-900 sticky top-0 z-50">
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-gold"></div>
+        <div class="ambient-orb orb-blue"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="glass-nav border-b border-white/5 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="rounded-lg flex items-center justify-center">
-                            <i class="fas fa-warehouse text-white text-sm"></i>
+                <div class="flex items-center gap-4">
+                    <!-- Logo -->
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 bg-gold-200 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-warehouse text-gold-500 text-sm"></i>
                         </div>
-                        <span class="text-xl font-semibold text-gray-100">CKS-DMS</span>
+                        <span class="text-lg font-semibold text-white tracking-tight">CKS-DMS</span>
                     </div>
+                    <!-- Breadcrumb -->
                     {% if session.user_name %}
-                    <div class="hidden md:flex items-center space-x-1 text-sm text-gray-400">
+                    <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
                         <span>/</span>
-                        <span>{{ session.user_name }}</span>
+                        <span class="text-gray-500">{{ session.user_name }}</span>
                         {% if session.current_lager %}
                         <span>/</span>
-                        <span class="text-blue-400">Lager {{ session.current_lager }}</span>
+                        <span class="text-gold-500">Lager {{ session.current_lager }}</span>
                         {% endif %}
                     </div>
                     {% endif %}
                 </div>
                 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-4">
                     {% if session.user_id %}
-                    <!-- Notification Bell -->
-                    <button id="notificationBtn" class="relative p-2 hover:bg-gray-800 rounded-lg transition-colors">
-                        <i class="fas fa-bell text-gray-400 hover:text-gray-200"></i>
-                        <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"></span>
+                    <!-- Notification Button -->
+                    <button id="notificationBtn" class="relative w-10 h-10 bg-gray-900 border border-white/5 rounded-xl flex items-center justify-center hover:bg-gray-850 hover:border-white/10 transition-all duration-200 btn-scale">
+                        <i class="fas fa-bell text-gray-500 text-sm hover:text-gray-300 transition-colors"></i>
+                        <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 badge-pulse"></span>
                     </button>
                     
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
-                            <i class="fas fa-user text-gray-400 text-xs"></i>
+                    <!-- User Info -->
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 bg-gradient-to-br from-gold-200 to-gold-50 border border-white/5 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-user text-gold-500 text-xs"></i>
                         </div>
-                        <span class="text-sm text-gray-300 hidden sm:block">{{ session.user_name }}</span>
+                        <span class="text-sm font-medium text-gray-500 hidden sm:block">{{ session.user_name }}</span>
                     </div>
-                    <a href="/logoutdmsdms" class="text-gray-400 hover:text-red-400 transition-colors">
+                    
+                    <!-- Logout -->
+                    <a href="/logoutdms" class="text-gray-600 hover:text-red-500 transition-colors text-sm">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
                     {% endif %}
@@ -173,32 +275,33 @@
     </nav>
 
     <!-- Notification Modal -->
-    <div id="notificationModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 px-4">
-        <div class="bg-gray-800 rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden shadow-2xl animate-fade-in">
-            <div class="p-4 border-b border-gray-700 flex items-center justify-between">
-                <h3 class="text-lg font-semibold flex items-center">
-                    <i class="fas fa-bell mr-2 text-blue-500"></i>
+    <div id="notificationModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-20 px-4">
+        <div class="bg-gray-925 border border-white/5 rounded-3xl max-w-lg w-full max-h-[70vh] overflow-hidden shadow-2xl modal-animate">
+            <div class="p-5 border-b border-white/5 flex items-center justify-between">
+                <h3 class="text-base font-semibold flex items-center gap-2.5">
+                    <i class="fas fa-bell text-gold-500"></i>
                     Benachrichtigungen
                 </h3>
-                <button id="closeModal" class="p-2 hover:bg-gray-700 rounded-lg transition-colors">
-                    <i class="fas fa-times text-gray-400"></i>
+                <button id="closeModal" class="w-9 h-9 bg-gray-900 border border-white/5 rounded-xl flex items-center justify-center hover:bg-gray-850 hover:border-white/10 transition-all">
+                    <i class="fas fa-times text-gray-500 text-xs"></i>
                 </button>
             </div>
-            <div id="notificationList" class="overflow-y-auto max-h-[calc(70vh-140px)] p-4">
-                <div class="text-center text-gray-500 py-8">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Lade Benachrichtigungen...</p>
+            <div id="notificationList" class="overflow-y-auto max-h-[calc(70vh-140px)] p-5 space-y-3">
+                <div class="text-center py-10">
+                    <i class="fas fa-spinner fa-spin text-gray-600 text-2xl mb-3"></i>
+                    <p class="text-sm text-gray-600">Lade Benachrichtigungen...</p>
                 </div>
             </div>
-            <div class="p-4 border-t border-gray-700">
-                <button id="markAllRead" class="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors">
+            <div class="p-4 border-t border-white/5">
+                <button id="markAllRead" class="w-full py-3 px-5 bg-gray-900 border border-white/5 rounded-xl text-gold-500 text-sm font-medium hover:bg-gold-200 hover:border-gold-300/30 transition-all btn-scale">
                     Alle als gelesen markieren
                 </button>
             </div>
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Main Content -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {% block content %}{% endblock %}
     </div>
 
@@ -430,6 +533,7 @@
             
             liveSearch();
         }
+
         function toggleGroup(groupId) {
             const content = document.getElementById(`group-content-${groupId}`);
             const icon = document.getElementById(`group-icon-${groupId}`);
@@ -503,7 +607,7 @@
                     
                     return announcements;
                 } catch (error) {
-                    console.error('Fehler beim Laden der Ankündigungen:', error);
+                    console.error('Fehler beim Laden der Ankuendigungen:', error);
                     return [];
                 }
             }
@@ -564,78 +668,82 @@
                 
                 if (allNotifications.length === 0) {
                     notificationList.innerHTML = `
-                        <div class="text-center text-gray-500 py-8">
-                            <i class="fas fa-bell-slash text-3xl mb-2"></i>
-                            <p>Keine Benachrichtigungen</p>
+                        <div class="text-center py-10">
+                            <i class="fas fa-bell-slash text-gray-700 text-3xl mb-3"></i>
+                            <p class="text-sm text-gray-600">Keine Benachrichtigungen</p>
                         </div>
                     `;
                     return;
                 }
-
+                
                 notificationList.innerHTML = allNotifications.map(notification => {
-                    const isRead = read.includes(notification.id);
-                    const icon = notification.type === 'update' ? 'fa-sync-alt text-yellow-500' : 'fa-bullhorn text-blue-500';
-
-                    const updateButton = notification.type === 'update' ? `
-                        <a href="/update" class="mt-3 inline-block w-full text-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg transition-colors">
-                            <i class="fas fa-download mr-2"></i>Jetzt aktualisieren
-                        </a>
-                    ` : '';
+                    const isUnread = !read.includes(notification.id);
+                    const isUpdate = notification.type === 'update';
                     
                     return `
-                        <div class="mb-3 p-4 rounded-lg ${isRead ? 'bg-gray-900/50' : 'bg-blue-500/10 border border-blue-500/20'} transition-all">
-                            <div class="flex items-start gap-3">
-                                <i class="fas ${icon} mt-1 flex-shrink-0"></i>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm ${isRead ? 'text-gray-400' : 'text-gray-200'} mb-1">${notification.message}</p>
-                                    <p class="text-xs text-gray-500">${notification.timestamp}</p>
-                                    ${updateButton}
+                        <div class="p-4 rounded-2xl border transition-all ${isUnread 
+                            ? 'bg-blue-100 border-blue-200/30' 
+                            : 'bg-gray-900 border-white/5'}" 
+                            onclick="markAsRead('${notification.id}')">
+                            <div class="flex gap-3.5">
+                                <div class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isUpdate 
+                                    ? 'bg-gold-200' 
+                                    : 'bg-blue-200'}">
+                                    <i class="fas ${isUpdate ? 'fa-download text-gold-500' : 'fa-info-circle text-blue-500'} text-sm"></i>
                                 </div>
-                                ${!isRead ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>' : ''}
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[13px] leading-relaxed mb-1.5 ${isUnread ? 'text-white' : 'text-gray-500'}">${notification.message}</p>
+                                    <span class="text-[11px] text-gray-600">${notification.timestamp}</span>
+                                    ${isUpdate ? `
+                                        <a href="https://github.com/Matti-Krebelder/DMS/releases" target="_blank" 
+                                           class="inline-flex items-center gap-2 mt-3 px-4 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 rounded-xl text-gray-950 text-[13px] font-semibold hover:brightness-110 transition-all btn-scale">
+                                            <i class="fas fa-download text-xs"></i>
+                                            Update herunterladen
+                                        </a>
+                                    ` : ''}
+                                </div>
+                                ${isUnread ? '<div class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1 status-glow-green" style="box-shadow: 0 0 8px #3b82f6"></div>' : ''}
                             </div>
                         </div>
                     `;
                 }).join('');
             }
 
-            async function loadNotifications() {
+            async function loadAllNotifications() {
+                const updateNotifications = getUpdateNotification();
                 const announcements = await loadAnnouncements();
-                const updates = getUpdateNotification();
                 
-                allNotifications = [...updates, ...announcements];
+                allNotifications = [...updateNotifications, ...announcements];
                 
                 updateBadge();
-                if (notificationModal && !notificationModal.classList.contains('hidden')) {
-                    renderNotifications();
-                }
+                renderNotifications();
             }
 
-
-            notificationBtn.addEventListener('click', function() {
+            // Event Listeners
+            notificationBtn.addEventListener('click', () => {
                 notificationModal.classList.remove('hidden');
-                renderNotifications();
             });
 
-
-            closeModal.addEventListener('click', function() {
+            closeModal.addEventListener('click', () => {
                 notificationModal.classList.add('hidden');
             });
 
-
-            notificationModal.addEventListener('click', function(e) {
+            notificationModal.addEventListener('click', (e) => {
                 if (e.target === notificationModal) {
                     notificationModal.classList.add('hidden');
                 }
             });
 
+            markAllReadBtn.addEventListener('click', markAllAsRead);
 
-            markAllReadBtn.addEventListener('click', function() {
-                markAllAsRead();
-            });
+            // Make markAsRead global
+            window.markAsRead = markAsRead;
 
-            loadNotifications();
+            // Initial load
+            loadAllNotifications();
 
-            setInterval(loadNotifications, 5 * 60 * 1000);
+            // Refresh every 5 minutes
+            setInterval(loadAllNotifications, 1 * 60 * 1000);
         }
     </script>
 </body>
