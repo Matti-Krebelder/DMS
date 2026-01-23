@@ -695,7 +695,7 @@
                                     <p class="text-[13px] leading-relaxed mb-1.5 ${isUnread ? 'text-white' : 'text-gray-500'}">${notification.message}</p>
                                     <span class="text-[11px] text-gray-600">${notification.timestamp}</span>
                                     ${isUpdate ? `
-                                        <a href="https://github.com/Matti-Krebelder/DMS/releases" target="_blank" 
+                                        <a href="/update" 
                                            class="inline-flex items-center gap-2 mt-3 px-4 py-2.5 bg-gradient-to-r from-gold-500 to-gold-400 rounded-xl text-gray-950 text-[13px] font-semibold hover:brightness-110 transition-all btn-scale">
                                             <i class="fas fa-download text-xs"></i>
                                             Update herunterladen
@@ -743,7 +743,7 @@
             loadAllNotifications();
 
             // Refresh every 5 minutes
-            setInterval(loadAllNotifications, 1 * 60 * 1000);
+            setInterval(loadAllNotifications, 5 * 60 * 1000);
         }
     </script>
 </body>
